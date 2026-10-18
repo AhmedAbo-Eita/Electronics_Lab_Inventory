@@ -31,6 +31,7 @@ let bomAnalysis = [];
 
 let selectedMPN = '';
 let isDarkMode = true;
+let themePreference = 'system';
 let activeSubTab = 'addComponentTab';
 
 // Sorting state for Inventory Table & BOM Table
@@ -1365,11 +1366,86 @@ async function refreshDatabaseStatus() {
   }
 }
 
+function getSystemWindowsTheme() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function updateSystemThemeBadge() {
+  const badge = document.getElementById('themeSystemBadge');
+  if (badge) {
+    const sysTheme = getSystemWindowsTheme();
+    badge.textContent = sysTheme === 'dark' ? 'Windows: Dark' : 'Windows: Light';
+  }
+}
+
+function applyTheme(preference, notify = false) {
+  themePreference = preference;
+  try {
+    localStorage.setItem('app_theme_preference', preference);
+  } catch {}
+
+  const sysTheme = getSystemWindowsTheme();
+  let effectiveTheme = preference;
+  if (preference === 'system') {
+    effectiveTheme = sysTheme;
+  }
+
+  isDarkMode = (effectiveTheme === 'dark');
+
+  // Update Body Theme Classes
+  document.body.classList.toggle('dark-theme', isDarkMode);
+  document.body.classList.toggle('light-theme', !isDarkMode);
+
+  // Update Titlebar Quick Switch UI
+  const themeSwitchText = document.getElementById('themeSwitchText');
+  const themeSwitchBtn = document.getElementById('themeSwitchBtn');
+  if (themeSwitchText) {
+    themeSwitchText.textContent = isDarkMode ? 'Dark' : 'Light';
+  }
+  if (themeSwitchBtn) {
+    themeSwitchBtn.setAttribute('aria-checked', String(!isDarkMode));
+    themeSwitchBtn.title = `Switch Theme (Current: ${preference === 'system' ? 'Windows ' + sysTheme : preference})`;
+  }
+
+  // Update Settings Modal Radios
+  const radioSystem = document.getElementById('themeRadioSystem');
+  const radioDark = document.getElementById('themeRadioDark');
+  const radioLight = document.getElementById('themeRadioLight');
+  if (radioSystem) radioSystem.checked = (preference === 'system');
+  if (radioDark) radioDark.checked = (preference === 'dark');
+  if (radioLight) radioLight.checked = (preference === 'light');
+
+  updateSystemThemeBadge();
+
+  if (notify) {
+    if (preference === 'system') {
+      showToast(`Theme: System Default (${sysTheme === 'dark' ? 'Windows Dark' : 'Windows Light'})`);
+    } else if (preference === 'dark') {
+      showToast('Theme: Dark Mode');
+    } else {
+      showToast('Theme: Light Mode');
+    }
+  }
+}
+
 async function openDatabaseModal() {
   const modal = document.getElementById('dbSettingsModal');
   const feedback = document.getElementById('dbTestFeedback');
   feedback.className = 'db-feedback-box hidden';
   feedback.textContent = '';
+
+  // Synchronize current theme selection & Windows detection badge
+  updateSystemThemeBadge();
+  let currentPref = 'system';
+  try {
+    currentPref = localStorage.getItem('app_theme_preference') || 'system';
+  } catch {}
+  const radioSystem = document.getElementById('themeRadioSystem');
+  const radioDark = document.getElementById('themeRadioDark');
+  const radioLight = document.getElementById('themeRadioLight');
+  if (radioSystem) radioSystem.checked = (currentPref === 'system');
+  if (radioDark) radioDark.checked = (currentPref === 'dark');
+  if (radioLight) radioLight.checked = (currentPref === 'light');
 
   const cfg = await window.electronAPI.getMySQLConfig();
   document.getElementById('dbEnableSyncToggle').checked = Boolean(cfg.enabled);
@@ -1607,26 +1683,51 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 5. Theme Toggle Switch (Modern Material 3 Switch: Light / Dark)
+  // 5. Theme & Appearance Management (System Auto-detect Windows mode or Manual)
+  let savedTheme = 'system';
+  try {
+    savedTheme = localStorage.getItem('app_theme_preference') || 'system';
+  } catch {}
+  applyTheme(savedTheme, false);
+
+  // Watch dynamically for Windows OS theme changes
+  if (window.matchMedia) {
+    const osSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleOSChange = () => {
+      updateSystemThemeBadge();
+      let cur = 'system';
+      try {
+        cur = localStorage.getItem('app_theme_preference') || 'system';
+      } catch {}
+      if (cur === 'system') {
+        applyTheme('system', true);
+      }
+    };
+    if (osSchemeQuery.addEventListener) {
+      osSchemeQuery.addEventListener('change', handleOSChange);
+    } else if (osSchemeQuery.addListener) {
+      osSchemeQuery.addListener(handleOSChange);
+    }
+  }
+
+  // Radio button listeners in Settings Dialog
+  ['themeRadioSystem', 'themeRadioDark', 'themeRadioLight'].forEach((radioId) => {
+    const radio = document.getElementById(radioId);
+    if (radio) {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          applyTheme(e.target.value, true);
+        }
+      });
+    }
+  });
+
+  // Quick switch toggle on Titlebar
   const themeSwitchBtn = document.getElementById('themeSwitchBtn');
-  const themeSwitchText = document.getElementById('themeSwitchText');
-
-  const updateThemeUI = () => {
-    document.body.classList.toggle('dark-theme', isDarkMode);
-    document.body.classList.toggle('light-theme', !isDarkMode);
-    if (themeSwitchText) {
-      themeSwitchText.textContent = isDarkMode ? 'Dark' : 'Light';
-    }
-    if (themeSwitchBtn) {
-      themeSwitchBtn.setAttribute('aria-checked', String(!isDarkMode));
-    }
-  };
-
   if (themeSwitchBtn) {
     themeSwitchBtn.addEventListener('click', () => {
-      isDarkMode = !isDarkMode;
-      updateThemeUI();
-      showToast(isDarkMode ? 'Switched to Dark theme' : 'Switched to Light theme');
+      const nextTheme = isDarkMode ? 'light' : 'dark';
+      applyTheme(nextTheme, true);
     });
   }
 
@@ -1801,7 +1902,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 13. Database & MySQL Remote Sync Listeners
+  // 13. Settings & Database Remote Sync Listeners
+  const openSettingsBtn = document.getElementById('openSettingsBtn');
+  if (openSettingsBtn) {
+    openSettingsBtn.addEventListener('click', openDatabaseModal);
+  }
   document.getElementById('dbStatusPill').addEventListener('click', openDatabaseModal);
   document.getElementById('dbModalCloseBtn').addEventListener('click', closeDatabaseModal);
   document.getElementById('dbTestBtn').addEventListener('click', onTestDatabaseConnection);

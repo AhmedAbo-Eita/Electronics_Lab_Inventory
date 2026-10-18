@@ -1672,6 +1672,42 @@ button.btn-outlined:hover:not(:disabled) {
   color: var(--text-primary);
 }
 
+.titlebar-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  background: var(--bg-container-high);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-standard);
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-settings-btn:hover {
+  background: var(--bg-container-highest);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.titlebar-settings-btn .settings-gear-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.45s var(--ease-emphasized), color 0.2s ease;
+}
+
+.titlebar-settings-btn:hover .settings-gear-icon {
+  transform: rotate(60deg);
+  color: var(--primary);
+}
+
 .db-status-dot {
   width: 8px;
   height: 8px;
@@ -1732,7 +1768,7 @@ button.btn-outlined:hover:not(:disabled) {
   border: 1px solid var(--border-strong);
   border-radius: 16px;
   width: 100%;
-  max-width: 580px;
+  max-width: 630px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -1967,4 +2003,175 @@ button.btn-outlined:hover:not(:disabled) {
   font-family: 'Consolas', monospace;
   font-size: 11px;
 }
+
+/* ============================================================================
+ * Settings Dialog Sections & Theme Card Radios
+ * ============================================================================ */
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.settings-section-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.settings-section-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.1px;
+}
+
+.settings-section-desc {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.settings-divider {
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: 4px 0;
+}
+
+/* Theme Choice 3-Card Grid */
+.theme-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.theme-choice-card {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  user-select: none;
+}
+
+.theme-choice-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background-color: var(--bg-container-low);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  transition: all 0.22s var(--ease-standard);
+  height: 100%;
+}
+
+.theme-choice-card:hover .theme-card-body {
+  background-color: var(--bg-container-high);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.theme-choice-card input[type="radio"]:checked + .theme-card-body {
+  background-color: var(--bg-container-highest);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1.5px var(--primary), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+body.light-theme .theme-choice-card input[type="radio"]:checked + .theme-card-body {
+  background-color: #E8F0FE;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1.5px var(--primary), 0 4px 12px rgba(26, 115, 232, 0.15);
+}
+
+.theme-card-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-container-high);
+  color: var(--text-secondary);
+  transition: all 0.2s var(--ease-standard);
+}
+
+.theme-card-icon-wrap.icon-system {
+  color: var(--primary);
+  background-color: var(--bg-container-highest);
+}
+
+.theme-card-icon-wrap.icon-moon {
+  color: #A8C7FA;
+  background-color: rgba(168, 199, 250, 0.12);
+}
+
+.theme-card-icon-wrap.icon-sun {
+  color: #F9AB00;
+  background-color: rgba(249, 171, 0, 0.12);
+}
+
+.theme-card-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.theme-choice-card input[type="radio"]:checked + .theme-card-body .theme-card-icon-wrap {
+  transform: scale(1.08);
+}
+
+.theme-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.theme-card-headline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.theme-card-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.theme-card-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  background-color: var(--primary-container);
+  color: var(--text-primary);
+}
+
+.theme-card-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 

@@ -27,7 +27,11 @@ A modern desktop application for managing electronics lab component inventory an
 - **Dual Database Architecture (SQLite & MySQL)**:
   - **Local Offline**: Persistent SQLite database (`data/lab_inventory.db`), viewable in DBeaver.
   - **Online Sync**: Optional real-time synchronization with remote MySQL servers.
-- **Dark & Light Themes**: One-click theme toggle between Modern Dark Mode and Modern Light Mode.
+- **Settings & Unified Configuration Dialog**:
+  - Dedicated **Settings** button in the titlebar opening a unified configuration modal.
+  - **Automatic Windows Theme Detection**: Auto-detects Windows OS Dark or Light mode by default, reacting live when Windows appearance changes.
+  - **Custom Theme Overrides**: Choose between System Default (Windows Auto-detect), explicit Dark Mode, or explicit Light Mode with persistent local storage.
+  - Full MySQL remote server settings, connection testing, and DBeaver integration guides.
 
 ## Development & Build Commands
 

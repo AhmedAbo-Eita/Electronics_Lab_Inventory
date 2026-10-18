@@ -38,6 +38,15 @@
         <span id="dbStatusLabel">Offline (Local)</span>
       </button>
 
+      <!-- Settings Button (Theme & Database Configuration) -->
+      <button id="openSettingsBtn" class="titlebar-settings-btn ripple-btn" type="button" title="Application Settings & Appearance">
+        <svg class="settings-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Settings</span>
+      </button>
+
       <!-- Modern Light/Dark Mode Switch (Material 3 Chic Switch) -->
       <div class="theme-switch-wrapper" id="themeSwitchBtn" role="switch" aria-checked="false" title="Switch Theme (Light / Dark)">
         <svg class="theme-switch-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -568,36 +577,139 @@
     </footer>
   </div>
 
-  <!-- Database & MySQL Remote Sync Modal -->
+  <!-- Settings & Database Remote Sync Modal -->
   <div id="dbSettingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dbModalTitle">
     <div class="modal-card db-modal-card">
       <div class="modal-header">
         <div class="modal-title-group">
           <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
           <div>
-            <h2 id="dbModalTitle" class="modal-title">Database &amp; Remote Sync</h2>
-            <p class="modal-subtitle">Work offline with local storage, or connect to a remote MySQL server for real-time team synchronization.</p>
+            <h2 id="dbModalTitle" class="modal-title">Application Settings</h2>
+            <p class="modal-subtitle">Configure theme appearance (auto-detect Windows mode or custom) and database synchronization.</p>
           </div>
         </div>
         <button id="dbModalCloseBtn" class="modal-close-btn ripple-btn" type="button" aria-label="Close modal">&times;</button>
       </div>
 
       <div class="modal-body">
-        <!-- Live Connection Status Card -->
-        <div class="db-status-banner" id="dbStatusBanner">
-          <div class="db-status-indicator">
-            <span class="db-status-dot dot-offline" id="modalStatusDot"></span>
-            <span class="db-status-text" id="modalStatusText">Offline (Local SQLite Database)</span>
+        <!-- Section 1: Appearance & Theme Mode -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <div>
+              <h3 class="settings-section-title">Theme &amp; Appearance</h3>
+              <p class="settings-section-desc">Choose your color scheme or automatically follow your Windows system setting.</p>
+            </div>
           </div>
-          <span class="db-last-sync" id="modalLastSyncText">Last sync: Never</span>
+
+          <div class="theme-choice-grid">
+            <!-- Option 1: System Default (Auto-detect Windows mode) -->
+            <label class="theme-choice-card" for="themeRadioSystem" id="themeCardSystem">
+              <input type="radio" name="themePreference" id="themeRadioSystem" value="system" />
+              <div class="theme-card-body">
+                <div class="theme-card-icon-wrap icon-system">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-card-icon">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                </div>
+                <div class="theme-card-meta">
+                  <div class="theme-card-headline">
+                    <span class="theme-card-name">System Default</span>
+                    <span class="theme-card-badge" id="themeSystemBadge">Auto</span>
+                  </div>
+                  <span class="theme-card-desc">Matches your Windows OS theme automatically</span>
+                </div>
+              </div>
+            </label>
+
+            <!-- Option 2: Dark Mode -->
+            <label class="theme-choice-card" for="themeRadioDark" id="themeCardDark">
+              <input type="radio" name="themePreference" id="themeRadioDark" value="dark" />
+              <div class="theme-card-body">
+                <div class="theme-card-icon-wrap icon-moon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-card-icon">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                  </svg>
+                </div>
+                <div class="theme-card-meta">
+                  <div class="theme-card-headline">
+                    <span class="theme-card-name">Dark Mode</span>
+                  </div>
+                  <span class="theme-card-desc">Deep obsidian &amp; slate, easier on the eyes</span>
+                </div>
+              </div>
+            </label>
+
+            <!-- Option 3: Light Mode -->
+            <label class="theme-choice-card" for="themeRadioLight" id="themeCardLight">
+              <input type="radio" name="themePreference" id="themeRadioLight" value="light" />
+              <div class="theme-card-body">
+                <div class="theme-card-icon-wrap icon-sun">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-card-icon">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </svg>
+                </div>
+                <div class="theme-card-meta">
+                  <div class="theme-card-headline">
+                    <span class="theme-card-name">Light Mode</span>
+                  </div>
+                  <span class="theme-card-desc">Crisp white &amp; clean daytime aesthetic</span>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
 
-        <!-- Connection Settings Form -->
-        <form id="dbSettingsForm" class="db-form-grid" onsubmit="return false;">
+        <div class="settings-divider"></div>
+
+        <!-- Section 2: Database & MySQL Remote Sync -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <div>
+              <h3 class="settings-section-title">Database &amp; Remote Sync</h3>
+              <p class="settings-section-desc">Store data locally in SQLite, or connect to a MySQL server for team synchronization.</p>
+            </div>
+          </div>
+
+          <!-- Live Connection Status Card -->
+          <div class="db-status-banner" id="dbStatusBanner">
+            <div class="db-status-indicator">
+              <span class="db-status-dot dot-offline" id="modalStatusDot"></span>
+              <span class="db-status-text" id="modalStatusText">Offline (Local SQLite Database)</span>
+            </div>
+            <span class="db-last-sync" id="modalLastSyncText">Last sync: Never</span>
+          </div>
+
+          <!-- Connection Settings Form -->
+          <form id="dbSettingsForm" class="db-form-grid" onsubmit="return false;">
           <div class="field-group span-full toggle-field-group">
             <label class="toggle-container" for="dbEnableSyncToggle">
               <input type="checkbox" id="dbEnableSyncToggle" />
