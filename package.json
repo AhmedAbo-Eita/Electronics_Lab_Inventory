@@ -29,15 +29,14 @@
       "icon": "assets/Images/Lab_Inventory.ico",
       "target": [
         "nsis",
-        "portable",
-        "dir"
+        "portable"
       ]
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
-      "createDesktopShortcut": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "Lab Inventory",
       "artifactName": "Lab_Inventory_Setup_${version}.exe"
