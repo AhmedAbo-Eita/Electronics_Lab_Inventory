@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveTemplateDB: () => ipcRenderer.invoke('db:export-template'),
 
   /**
+   * Opens a native dialog to import a BOM from Excel (.xlsx), CSV, or SQLite (.db).
+   */
+  importBomDialog: (title) => ipcRenderer.invoke('db:import-bom', title),
+
+  /**
    * Opens a native dialog to export BOM Availability & Shortage Report as a SQLite (.db) file.
    */
   exportBomReportDB: (payload) => ipcRenderer.invoke('db:export-bom-report', payload),

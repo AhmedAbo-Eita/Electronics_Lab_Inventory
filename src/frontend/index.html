@@ -231,15 +231,15 @@
             <div class="surface-card action-cluster-card">
               <div class="section-overline">DATABASE &amp; TOOLS</div>
               <div class="toolbar-grid">
-                <button id="importPushButton" class="btn-tonal ripple-btn" type="button" title="Import components from an external SQLite (.db) database file">
+                <button id="importPushButton" class="btn-tonal ripple-btn" type="button" title="Import inventory components from Excel (.xlsx) or CSV file and save to database">
                   <img src="../../assets/Images/import.png" alt="" class="btn-icon" />
-                  <span>Import DB</span>
+                  <span>Import Sheet</span>
                 </button>
-                <button id="exportPushButton" class="btn-tonal ripple-btn" type="button" title="Export inventory backup to an external SQLite (.db) database file">
+                <button id="exportPushButton" class="btn-tonal ripple-btn" type="button" title="Export inventory components to Excel (.xlsx) or CSV spreadsheet">
                   <img src="../../assets/Images/Export.png" alt="" class="btn-icon" />
-                  <span>Export DB</span>
+                  <span>Export Sheet</span>
                 </button>
-                <button id="savePushButton" class="btn-filled-primary ripple-btn" type="button" title="Save changes to local SQLite database">
+                <button id="savePushButton" class="btn-filled-primary ripple-btn" type="button" title="Save changes to local SQLite database (and sync to MySQL)">
                   <img src="../../assets/Images/save_9584668.png" alt="" class="btn-icon" />
                   <span>Save Database</span>
                 </button>
@@ -251,9 +251,9 @@
                   <img src="../../assets/Images/clean.png" alt="" class="btn-icon" />
                   <span>Clear All</span>
                 </button>
-                <button id="saveExamplePushButton" class="btn-tonal ripple-btn" type="button" title="Save a starter SQLite (.db) template database">
+                <button id="saveExamplePushButton" class="btn-tonal ripple-btn" type="button" title="Download clean Excel (.xlsx) or CSV starter template">
                   <img src="../../assets/Images/xlsx.png" alt="" class="btn-icon" />
-                  <span>DB Template</span>
+                  <span>Template</span>
                 </button>
               </div>
             </div>
@@ -472,9 +472,9 @@
               </div>
 
               <div class="bom-action-buttons">
-                <button id="ImportBomPushButton" class="btn-filled-primary ripple-btn" type="button" title="Import BOM components from a SQLite (.db) database file">
+                <button id="ImportBomPushButton" class="btn-filled-primary ripple-btn" type="button" title="Import BOM from Excel (.xlsx) or CSV file (KiCad, Altium, Eagle)">
                   <img src="../../assets/Images/import.png" alt="" class="btn-icon-sm" />
-                  <span>Import BOM DB</span>
+                  <span>Import BOM</span>
                 </button>
 
                 <button
@@ -490,7 +490,7 @@
                   id="exportBomReportPushButton"
                   class="btn-tonal-teal ripple-btn"
                   type="button"
-                  title="Export full BOM availability and shortage report to a SQLite (.db) database file"
+                  title="Export full BOM availability and shortage report to Excel (.xlsx) or CSV"
                   disabled
                 >
                   <img src="../../assets/Images/Export.png" alt="" class="btn-icon-sm" />

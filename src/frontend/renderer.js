@@ -938,13 +938,13 @@ async function onSavePushButtonClicked() {
 
 async function onExportPushButtonClicked() {
   const res = await window.electronAPI.exportDBDialog({
-    title: 'Export Inventory as SQLite Database',
-    defaultPath: 'lab_inventory_backup.db',
+    title: 'Export Inventory (Excel / CSV / DB)',
+    defaultPath: 'My_Lab_Inventory.xlsx',
     components: componentList
   });
   if (res.canceled) return;
   if (res.ok) {
-    showToast('Exported SQLite database (.db)');
+    showToast('Exported inventory file');
   } else {
     await window.electronAPI.showMessage({
       type: 'warning',
@@ -955,7 +955,7 @@ async function onExportPushButtonClicked() {
 }
 
 async function onImportPushButtonClicked() {
-  const res = await window.electronAPI.importDBDialog('Import SQLite Database File');
+  const res = await window.electronAPI.importDBDialog('Import Inventory Spreadsheet (Excel / CSV / DB)');
   if (res.canceled) return;
   if (!res.ok) {
     await window.electronAPI.showMessage({
@@ -1002,7 +1002,7 @@ async function onImportPushButtonClicked() {
   } else {
     componentListOldSave = cloneComponentList(componentList);
     updateDashboardMetrics();
-    showToast(`Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged)`);
+    showToast(`Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged) & saved to DB`);
     syncDatabaseQuietly();
   }
 }
@@ -1011,12 +1011,12 @@ async function onSaveExamplePushButtonClicked() {
   const res = await window.electronAPI.saveTemplateDB();
   if (res.canceled) return;
   if (res.ok) {
-    showToast('Saved SQLite database template (.db)');
+    showToast('Saved inventory starter template (Excel / CSV)');
   } else {
     await window.electronAPI.showMessage({
       type: 'warning',
       title: 'Save Template Failed',
-      message: res.error || 'Could not export SQLite template file.'
+      message: res.error || 'Could not export template file.'
     });
   }
 }
@@ -1171,7 +1171,7 @@ async function onDeleteComponentpushButtonClicked() {
 // ============================================================================
 
 async function onImportBomPushButtonClicked() {
-  const res = await window.electronAPI.importDBDialog('Import BOM SQLite Database File');
+  const res = await window.electronAPI.importBomDialog('Import BOM (Excel / CSV / DB)');
   if (res.canceled) return;
   if (!res.ok) {
     await window.electronAPI.showMessage({
@@ -1189,8 +1189,8 @@ async function onImportBomPushButtonClicked() {
   if (list.length === 0) {
     await window.electronAPI.showMessage({
       type: 'info',
-      title: 'Empty BOM Database',
-      message: 'No valid component rows were found in the selected SQLite database.'
+      title: 'Empty BOM',
+      message: 'No valid component rows were found in the selected BOM file.'
     });
     return;
   }
@@ -1201,7 +1201,7 @@ async function onImportBomPushButtonClicked() {
     boardInput.value = res.baseName;
   }
   refreshBomAnalysis();
-  showToast(`Loaded BOM database with ${bomItems.length} unique parts`);
+  showToast(`Loaded BOM with ${bomItems.length} unique parts`);
 }
 
 function onLoadSampleBomClicked() {
@@ -1240,7 +1240,7 @@ async function onExportBomReportClicked() {
   if (bomAnalysis.length === 0) return;
 
   const boardName = document.getElementById('BomBoardNamelineEdit').value.trim() || 'Board_BOM';
-  const defaultFile = `${boardName}_Availability_Report.db`;
+  const defaultFile = `${boardName}_Availability_Report.xlsx`;
   const boardsCount = Math.max(1, parseInt(document.getElementById('bomBoardsSpinBox').value, 10) || 1);
 
   const res = await window.electronAPI.exportBomReportDB({
@@ -1252,7 +1252,7 @@ async function onExportBomReportClicked() {
 
   if (res.canceled) return;
   if (res.ok) {
-    showToast('Exported BOM Availability Report database (.db)');
+    showToast('Exported BOM Availability Report (Excel / CSV)');
   } else {
     await window.electronAPI.showMessage({
       type: 'warning',

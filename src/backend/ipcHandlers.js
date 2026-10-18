@@ -9,8 +9,10 @@
  */
 
 const { ipcMain, dialog } = require('electron');
+const path = require('path');
 const sqliteDb = require('./sqliteDatabase');
 const mysqlClient = require('./mysqlClient');
+const spreadsheetHelper = require('./spreadsheetHelper');
 
 /**
  * Registers all application IPC handlers.
@@ -59,14 +61,17 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
   });
 
   /**
-   * Opens a native dialog to import components from an external SQLite (.db) database file.
+   * Opens a native dialog to import components from an Excel (.xlsx / .xls), CSV, or SQLite (.db) file.
    */
-  ipcMain.handle('db:import-file', async (_event, title = 'Import SQLite Database File') => {
+  ipcMain.handle('db:import-file', async (_event, title = 'Import Inventory (Excel / CSV / DB)') => {
     const win = getMainWindow();
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
       title,
       filters: [
-        { name: 'SQLite Database (*.db, *.sqlite, *.sqlite3)', extensions: ['db', 'sqlite', 'sqlite3'] },
+        { name: 'Excel & CSV Spreadsheets (*.xlsx, *.csv, *.xls)', extensions: ['xlsx', 'csv', 'xls'] },
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'SQLite Database (*.db, *.sqlite)', extensions: ['db', 'sqlite', 'sqlite3'] },
         { name: 'All Files (*.*)', extensions: ['*'] }
       ],
       properties: ['openFile']
@@ -76,19 +81,28 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
       return { canceled: true };
     }
 
-    return sqliteDb.importFromExternalDbFile(filePaths[0]);
+    const selectedPath = filePaths[0];
+    const ext = path.extname(selectedPath).toLowerCase();
+
+    if (ext === '.db' || ext === '.sqlite' || ext === '.sqlite3') {
+      return sqliteDb.importFromExternalDbFile(selectedPath);
+    } else {
+      return spreadsheetHelper.readInventorySpreadsheet(selectedPath);
+    }
   });
 
   /**
-   * Opens a native dialog to export inventory to an external SQLite (.db) database file.
+   * Opens a native dialog to export inventory to an Excel (.xlsx), CSV, or SQLite (.db) file.
    */
   ipcMain.handle('db:export-file', async (_event, { title, defaultPath, components }) => {
     const win = getMainWindow();
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      title: title || 'Export Inventory as SQLite Database',
-      defaultPath: defaultPath || 'lab_inventory_backup.db',
+      title: title || 'Export Inventory (Excel / CSV / DB)',
+      defaultPath: defaultPath || 'My_Lab_Inventory.xlsx',
       filters: [
-        { name: 'SQLite Database (*.db)', extensions: ['db', 'sqlite', 'sqlite3'] },
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'SQLite Database (*.db)', extensions: ['db', 'sqlite'] },
         { name: 'All Files (*.*)', extensions: ['*'] }
       ]
     });
@@ -97,20 +111,26 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
       return { canceled: true };
     }
 
-    return sqliteDb.exportToExternalDbFile(filePath, components);
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.db' || ext === '.sqlite') {
+      return sqliteDb.exportToExternalDbFile(filePath, components);
+    } else {
+      return spreadsheetHelper.writeInventorySpreadsheet(filePath, components);
+    }
   });
 
   /**
-   * Opens a native dialog to save a clean starter SQLite database template (.db).
+   * Opens a native dialog to save a clean starter template (Excel .xlsx, CSV, or SQLite .db).
    */
   ipcMain.handle('db:export-template', async () => {
     const win = getMainWindow();
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      title: 'Save SQLite Database Template',
-      defaultPath: 'lab_inventory_template.db',
+      title: 'Save Inventory Template (Excel / CSV / DB)',
+      defaultPath: 'Lab_Inventory_Template.xlsx',
       filters: [
-        { name: 'SQLite Database (*.db)', extensions: ['db', 'sqlite', 'sqlite3'] },
-        { name: 'All Files (*.*)', extensions: ['*'] }
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'SQLite Database (*.db)', extensions: ['db'] }
       ]
     });
 
@@ -118,19 +138,57 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
       return { canceled: true };
     }
 
-    return sqliteDb.exportTemplateDbFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.db') {
+      return sqliteDb.exportTemplateDbFile(filePath);
+    } else {
+      return spreadsheetHelper.writeTemplateSpreadsheet(filePath);
+    }
   });
 
   /**
-   * Opens a native dialog to export BOM Availability & Shortage Report as a SQLite (.db) file.
+   * Opens a native dialog to import a BOM from Excel (.xlsx / .xls), CSV, or SQLite (.db).
+   */
+  ipcMain.handle('db:import-bom', async (_event, title = 'Import BOM (Excel / CSV / DB)') => {
+    const win = getMainWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title,
+      filters: [
+        { name: 'BOM Files (*.xlsx, *.csv, *.xls)', extensions: ['xlsx', 'csv', 'xls'] },
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'SQLite Database (*.db, *.sqlite)', extensions: ['db', 'sqlite', 'sqlite3'] },
+        { name: 'All Files (*.*)', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (canceled || !filePaths || filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    const selectedPath = filePaths[0];
+    const ext = path.extname(selectedPath).toLowerCase();
+
+    if (ext === '.db' || ext === '.sqlite' || ext === '.sqlite3') {
+      return sqliteDb.importFromExternalDbFile(selectedPath);
+    } else {
+      return spreadsheetHelper.readBomSpreadsheet(selectedPath);
+    }
+  });
+
+  /**
+   * Opens a native dialog to export BOM Availability & Shortage Report as Excel (.xlsx), CSV, or SQLite (.db).
    */
   ipcMain.handle('db:export-bom-report', async (_event, { defaultPath, boardName, boardsCount, analysisItems }) => {
     const win = getMainWindow();
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      title: 'Export BOM Availability Report Database',
-      defaultPath: defaultPath || 'BOM_Availability_Report.db',
+      title: 'Export BOM Availability Report',
+      defaultPath: defaultPath || `${boardName || 'Board'}_Availability_Report.xlsx`,
       filters: [
-        { name: 'SQLite Database (*.db)', extensions: ['db', 'sqlite', 'sqlite3'] },
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'SQLite Database (*.db)', extensions: ['db', 'sqlite'] },
         { name: 'All Files (*.*)', extensions: ['*'] }
       ]
     });
@@ -139,7 +197,12 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
       return { canceled: true };
     }
 
-    return sqliteDb.exportBomReportToDbFile(filePath, boardName, boardsCount, analysisItems);
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.db' || ext === '.sqlite') {
+      return sqliteDb.exportBomReportToDbFile(filePath, boardName, boardsCount, analysisItems);
+    } else {
+      return spreadsheetHelper.writeBomReportSpreadsheet(filePath, boardName, boardsCount, analysisItems);
+    }
   });
 
   // --------------------------------------------------------------------------

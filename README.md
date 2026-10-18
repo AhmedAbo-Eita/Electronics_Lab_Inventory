@@ -15,11 +15,19 @@ A modern desktop application for managing electronics lab component inventory an
   - Edit components with quick `-1` / `+1` stock step buttons.
   - Search components by MPN with one-click jump to Add or Edit.
 - **BOM Analyzer & Board Builder**:
+  - Import BOM files from Excel (`.xlsx`) or CSV (supports EDA outputs from KiCad, Altium, and Eagle) with automatic duplicate MPN consolidation.
   - Load a realistic sample BOM with one click.
   - Configure **Boards to Build** multiplier and view **Max Buildable Boards**, **Ready in Stock**, and **Shortages / Missing** counts.
   - Deduct required BOM stock from Lab Inventory for a board build.
+  - Export full BOM Availability & Shortage Reports to Excel (`.xlsx`) or CSV.
+- **User-Friendly Excel & CSV Interface**:
+  - **Import Sheet**: Load components from any Excel (`.xlsx`, `.xls`) or CSV file; data is automatically parsed, merged, and transferred directly into the active database.
+  - **Export Sheet**: Download inventory into formatted Excel workbooks or CSV spreadsheets.
+  - **Starter Template**: One-click download of a standardized Excel/CSV template with sample parts.
+- **Dual Database Architecture (SQLite & MySQL)**:
+  - **Local Offline**: Persistent SQLite database (`data/lab_inventory.db`), viewable in DBeaver.
+  - **Online Sync**: Optional real-time synchronization with remote MySQL servers.
 - **Dark & Light Themes**: One-click theme toggle between Modern Dark Mode and Modern Light Mode.
-- **Pure Database Architecture**: Zero CSV files needed — powered by embedded SQLite with optional MySQL synchronization.
 
 ## Development & Build Commands
 
@@ -49,8 +57,9 @@ Electronics_Lab_Inventory/
 │   ├── backend/              # Node.js Electron Main Process
 │   │   ├── main.js           # App lifecycle, frameless window, close guard
 │   │   ├── sqliteDatabase.js # Local SQLite3 database manager (sql.js WASM engine)
+│   │   ├── spreadsheetHelper.js # Excel (.xlsx) & CSV parser / serializer (SheetJS)
 │   │   ├── mysqlClient.js    # MySQL connection pooling, auto table creation, two-way sync
-│   │   ├── ipcHandlers.js    # IPC endpoints (database, window controls, MySQL)
+│   │   ├── ipcHandlers.js    # IPC endpoints (database, spreadsheets, window controls, MySQL)
 │   │   └── preload.js        # Secure context bridge (window.electronAPI)
 │   │
 │   └── frontend/             # Chromium Renderer Process (UI)
