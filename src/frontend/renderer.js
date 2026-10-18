@@ -118,6 +118,153 @@ function showToast(message) {
 }
 
 // ============================================================================
+// Modern In-App Material 3 Alert & Confirmation Dialog
+// Replaces native OS message boxes with theme-aware (Dark/Light) modal cards.
+// ============================================================================
+
+let dialogQueue = [];
+let isDialogOpen = false;
+
+function getDialogIconSVG(type) {
+  switch (type) {
+    case 'error':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>`;
+    case 'warning':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+      </svg>`;
+    case 'question':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+      </svg>`;
+    case 'success':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>`;
+    case 'info':
+    default:
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+      </svg>`;
+  }
+}
+
+function processNextDialog() {
+  if (dialogQueue.length === 0) {
+    isDialogOpen = false;
+    return;
+  }
+
+  isDialogOpen = true;
+  const { options, resolve } = dialogQueue.shift();
+
+  const modal = document.getElementById('appDialogModal');
+  const iconWrap = document.getElementById('appDialogIconWrap');
+  const titleEl = document.getElementById('appDialogTitle');
+  const msgEl = document.getElementById('appDialogMessage');
+  const actionsEl = document.getElementById('appDialogActions');
+
+  if (!modal || !iconWrap || !titleEl || !msgEl || !actionsEl) {
+    resolve({ response: 0 });
+    isDialogOpen = false;
+    return;
+  }
+
+  const rawType = String(options.type || 'info').toLowerCase();
+  let iconType = 'info';
+  if (rawType.includes('err')) iconType = 'error';
+  else if (rawType.includes('warn')) iconType = 'warning';
+  else if (rawType.includes('quest')) iconType = 'question';
+  else if (rawType.includes('succ')) iconType = 'success';
+  else iconType = 'info';
+
+  iconWrap.className = `app-dialog-icon-wrap icon-type-${iconType}`;
+  iconWrap.innerHTML = getDialogIconSVG(iconType);
+
+  titleEl.textContent = options.title || 'Notification';
+  msgEl.textContent = options.message || '';
+
+  actionsEl.innerHTML = '';
+  const buttons = Array.isArray(options.buttons) && options.buttons.length > 0 ? options.buttons : ['OK'];
+  const defaultId = Number.isInteger(options.defaultId) ? Math.min(Math.max(0, options.defaultId), buttons.length - 1) : 0;
+  const cancelId = Number.isInteger(options.cancelId) ? Math.min(Math.max(0, options.cancelId), buttons.length - 1) : (buttons.length > 1 ? buttons.length - 1 : 0);
+
+  let keyListener = null;
+
+  function finish(responseIndex) {
+    if (keyListener) {
+      document.removeEventListener('keydown', keyListener, true);
+      keyListener = null;
+    }
+    modal.classList.add('hidden');
+    resolve({ response: responseIndex });
+    setTimeout(processNextDialog, 60);
+  }
+
+  buttons.forEach((label, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    const lower = String(label).toLowerCase();
+    const isDestructive = lower.includes('delete') || lower.includes('clear') || lower.includes('discard') || lower === "don't save";
+
+    if (isDestructive) {
+      btn.className = 'btn-tonal-danger ripple-btn';
+    } else if (idx === defaultId) {
+      btn.className = 'btn-filled-primary ripple-btn';
+    } else {
+      btn.className = 'btn-tonal ripple-btn';
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      finish(idx);
+    });
+
+    actionsEl.appendChild(btn);
+  });
+
+  modal.classList.remove('hidden');
+
+  const defaultBtn = actionsEl.children[defaultId] || actionsEl.firstElementChild;
+  if (defaultBtn) {
+    setTimeout(() => defaultBtn.focus(), 40);
+  }
+
+  keyListener = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      finish(cancelId);
+    } else if (e.key === 'Enter') {
+      const active = document.activeElement;
+      if (active && active.tagName === 'BUTTON' && actionsEl.contains(active)) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      finish(defaultId);
+    }
+  };
+
+  document.addEventListener('keydown', keyListener, true);
+}
+
+function showAppDialog(options = {}) {
+  return new Promise((resolve) => {
+    dialogQueue.push({ options, resolve });
+    if (!isDialogOpen) {
+      processNextDialog();
+    }
+  });
+}
+
+// Alias showMessage to showAppDialog
+const showMessage = showAppDialog;
+
+// ============================================================================
 // String Normalization & Data Model Helpers
 // ============================================================================
 
@@ -519,11 +666,11 @@ function populateInspectorForComponent(comp) {
 
   // Populate Inspector Tab tiles
   document.getElementById('foundedQuantityLabel').textContent = `${comp.quantity} units`;
-  document.getElementById('foundedLocationLable').textContent = comp.location || '—';
-  document.getElementById('foundedFootprintLabel').textContent = comp.footprint || '—';
-  document.getElementById('foundedTypeLable').textContent = comp.type || '—';
-  document.getElementById('foundedValueLabel').textContent = comp.value || '—';
-  document.getElementById('foundedCustomerCodeLabel').textContent = comp.customerCode || '—';
+  document.getElementById('foundedLocationLable').textContent = comp.location || '-';
+  document.getElementById('foundedFootprintLabel').textContent = comp.footprint || '-';
+  document.getElementById('foundedTypeLable').textContent = comp.type || '-';
+  document.getElementById('foundedValueLabel').textContent = comp.value || '-';
+  document.getElementById('foundedCustomerCodeLabel').textContent = comp.customerCode || '-';
 }
 
 function resetEditTabState() {
@@ -786,21 +933,21 @@ async function onAddPushButtonClicked() {
   const rawLoc = document.getElementById('locationLineEdit').value.trim();
 
   if (!rawMpn && !rawLoc) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'error',
       title: 'Incomplete Information',
       message: 'Please enter both the Manufacturer Part Number (MPN) and Location of the component.'
     });
     return;
   } else if (!rawMpn) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'error',
       title: 'Incomplete Information',
       message: 'Please enter the Manufacturer Part Number (MPN) of the component.'
     });
     return;
   } else if (!rawLoc) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'error',
       title: 'Incomplete Information',
       message: 'Please enter the storage Location of the component in the lab.'
@@ -826,7 +973,7 @@ async function onAddPushButtonClicked() {
     clearAddComponentForm();
     showToast(`Added ${userMPN} to inventory`);
   } else {
-    const { response } = await window.electronAPI.showMessage({
+    const { response } = await showAppDialog({
       type: 'question',
       buttons: ['Yes', 'No'],
       defaultId: 0,
@@ -848,7 +995,7 @@ async function onAddPushButtonClicked() {
 }
 
 async function onCleanPushButtonClicked() {
-  const { response } = await window.electronAPI.showMessage({
+  const { response } = await showAppDialog({
     type: 'warning',
     buttons: ['OK', 'Cancel'],
     defaultId: 0,
@@ -865,7 +1012,7 @@ async function onCleanPushButtonClicked() {
 
     const res = await window.electronAPI.saveDB(componentList);
     if (!res.ok) {
-      await window.electronAPI.showMessage({
+      await showAppDialog({
         type: 'warning',
         title: 'Clear Sync Failed',
         message: res.error
@@ -879,7 +1026,7 @@ async function onCleanPushButtonClicked() {
 }
 
 async function onResetPushButtonClicked() {
-  const { response } = await window.electronAPI.showMessage({
+  const { response } = await showAppDialog({
     type: 'question',
     buttons: ['OK', 'Cancel'],
     defaultId: 0,
@@ -891,7 +1038,7 @@ async function onResetPushButtonClicked() {
   if (response === 0) {
     const dbRes = await window.electronAPI.initAndLoadDB();
     if (!dbRes.ok) {
-      await window.electronAPI.showMessage({
+      await showAppDialog({
         type: 'warning',
         title: 'Reset Failed',
         message: 'Could not load database: ' + dbRes.error
@@ -911,7 +1058,7 @@ async function onResetPushButtonClicked() {
 }
 
 async function onSavePushButtonClicked() {
-  const { response } = await window.electronAPI.showMessage({
+  const { response } = await showAppDialog({
     type: 'question',
     buttons: ['OK', 'Cancel'],
     defaultId: 0,
@@ -928,7 +1075,7 @@ async function onSavePushButtonClicked() {
       showToast('Database saved successfully');
       syncDatabaseQuietly();
     } else {
-      await window.electronAPI.showMessage({
+      await showAppDialog({
         type: 'warning',
         title: 'Save Failed',
         message: res.error
@@ -947,7 +1094,7 @@ async function onExportPushButtonClicked() {
   if (res.ok) {
     showToast('Exported inventory file');
   } else {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Export Failed',
       message: res.error
@@ -959,7 +1106,7 @@ async function onImportPushButtonClicked() {
   const res = await window.electronAPI.importDBDialog('Import Inventory Spreadsheet (Excel / CSV / DB)');
   if (res.canceled) return;
   if (!res.ok) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Import Failed',
       message: res.error
@@ -995,7 +1142,7 @@ async function onImportPushButtonClicked() {
 
   const saveRes = await window.electronAPI.saveDB(componentList);
   if (!saveRes.ok) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Auto-Save Failed',
       message: saveRes.error
@@ -1014,7 +1161,7 @@ async function onSaveExamplePushButtonClicked() {
   if (res.ok) {
     showToast('Saved inventory starter template (Excel / CSV)');
   } else {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Save Template Failed',
       message: res.error || 'Could not export template file.'
@@ -1025,7 +1172,7 @@ async function onSaveExamplePushButtonClicked() {
 async function onFindPushButtonClicked() {
   const queryMPN = document.getElementById('searchMPNLineEdit').value.trim();
   if (!queryMPN) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Component Search',
       message: 'Please enter a Manufacturer Part Number (MPN) to search.'
@@ -1041,7 +1188,7 @@ async function onFindPushButtonClicked() {
     highlightSelectedInventoryRow();
     showToast(`Found ${comp.mpn}`);
   } else {
-    const { response } = await window.electronAPI.showMessage({
+    const { response } = await showAppDialog({
       type: 'question',
       buttons: ['OK', 'Cancel'],
       defaultId: 0,
@@ -1068,7 +1215,7 @@ async function onEditComponentPushButtonClicked() {
 
   const vecIdx = searchComponentByMPN(componentList, targetMPN);
   if (vecIdx === -1) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'info',
       title: 'Select a Component',
       message: 'Please find or click a component in the table first before editing.'
@@ -1087,7 +1234,7 @@ async function onEditComponentPushButtonClicked() {
 async function onEditFindpushButtonClicked() {
   const queryMPN = document.getElementById('editMPNLineEdit').value.trim();
   if (!queryMPN) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Component Search',
       message: 'Please enter a Manufacturer Part Number (MPN) to select.'
@@ -1101,7 +1248,7 @@ async function onEditFindpushButtonClicked() {
     populateInspectorForComponent(componentList[vecIdx]);
     highlightSelectedInventoryRow();
   } else {
-    const { response } = await window.electronAPI.showMessage({
+    const { response } = await showAppDialog({
       type: 'question',
       buttons: ['OK', 'Cancel'],
       defaultId: 0,
@@ -1149,7 +1296,7 @@ async function onDeleteComponentpushButtonClicked() {
   if (targetIdx === -1) return;
 
   const targetMPN = componentList[targetIdx].mpn;
-  const { response } = await window.electronAPI.showMessage({
+  const { response } = await showAppDialog({
     type: 'question',
     buttons: ['OK', 'Cancel'],
     defaultId: 0,
@@ -1175,7 +1322,7 @@ async function onImportBomPushButtonClicked() {
   const res = await window.electronAPI.importBomDialog('Import BOM (Excel / CSV / DB)');
   if (res.canceled) return;
   if (!res.ok) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'BOM Import Failed',
       message: res.error
@@ -1188,7 +1335,7 @@ async function onImportBomPushButtonClicked() {
   );
 
   if (list.length === 0) {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'info',
       title: 'Empty BOM',
       message: 'No valid component rows were found in the selected BOM file.'
@@ -1255,7 +1402,7 @@ async function onExportBomReportClicked() {
   if (res.ok) {
     showToast('Exported BOM Availability Report (Excel / CSV)');
   } else {
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Export Failed',
       message: res.error
@@ -1285,7 +1432,7 @@ async function onDeductBomStockClicked() {
       `Do you want to deduct the required BOM quantities from your Lab Inventory now?`;
   }
 
-  const { response } = await window.electronAPI.showMessage({
+  const { response } = await showAppDialog({
     type: 'question',
     buttons: ['Yes', 'No'],
     defaultId: 0,
@@ -1342,23 +1489,23 @@ async function refreshDatabaseStatus() {
   try {
     const status = await window.electronAPI.getMySQLStatus();
 
-    modalLastSync.textContent = `Last sync: ${status.lastSyncTime || 'Never'}`;
+    if (modalLastSync) modalLastSync.textContent = `Last sync: ${status.lastSyncTime || 'Never'}`;
 
     if (!status.enabled) {
-      dot.className = 'db-status-dot dot-offline';
-      label.textContent = 'Offline (Local)';
-      modalDot.className = 'db-status-dot dot-offline';
-      modalText.textContent = 'Offline (Local SQLite Database)';
+      if (dot) dot.className = 'db-status-dot dot-offline';
+      if (label) label.textContent = 'Offline (Local)';
+      if (modalDot) modalDot.className = 'db-status-dot dot-offline';
+      if (modalText) modalText.textContent = 'Offline (Local SQLite Database)';
     } else if (status.online) {
-      dot.className = 'db-status-dot dot-online';
-      label.textContent = 'Online (MySQL)';
-      modalDot.className = 'db-status-dot dot-online';
-      modalText.textContent = `Connected to ${status.host} (${status.database})`;
+      if (dot) dot.className = 'db-status-dot dot-online';
+      if (label) label.textContent = 'Online (MySQL)';
+      if (modalDot) modalDot.className = 'db-status-dot dot-online';
+      if (modalText) modalText.textContent = `Connected to ${status.host} (${status.database})`;
     } else {
-      dot.className = 'db-status-dot dot-error';
-      label.textContent = 'MySQL Offline';
-      modalDot.className = 'db-status-dot dot-error';
-      modalText.textContent = `Offline (${status.message || 'Cannot reach MySQL'})`;
+      if (dot) dot.className = 'db-status-dot dot-error';
+      if (label) label.textContent = 'MySQL Offline';
+      if (modalDot) modalDot.className = 'db-status-dot dot-error';
+      if (modalText) modalText.textContent = `Offline (${status.message || 'Cannot reach MySQL'})`;
     }
   } catch (err) {
     if (dot) dot.className = 'db-status-dot dot-offline';
@@ -1618,7 +1765,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!dbRes.ok) {
     if (splashStatusText) splashStatusText.textContent = 'Error loading database';
     hideSplashScreen();
-    await window.electronAPI.showMessage({
+    await showAppDialog({
       type: 'warning',
       title: 'Database Verification Error',
       message: dbRes.error || 'Could not initialize database.'
@@ -1763,7 +1910,34 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (winCloseBtn) {
-    winCloseBtn.addEventListener('click', () => {
+    winCloseBtn.addEventListener('click', async () => {
+      if (!areComponentListsEqual(componentListOldSave, componentList)) {
+        const { response } = await showAppDialog({
+          type: 'question',
+          buttons: ['Save & Close', "Don't Save", 'Cancel'],
+          defaultId: 0,
+          cancelId: 2,
+          title: 'Unsaved Changes',
+          message: 'You have unsaved changes in your inventory. Do you want to save before closing?'
+        });
+
+        if (response === 0) {
+          const res = await window.electronAPI.saveDB(componentList);
+          if (res.ok) {
+            componentListOldSave = cloneComponentList(componentList);
+            await window.electronAPI.confirmForceClose();
+          } else {
+            await showAppDialog({
+              type: 'warning',
+              title: 'Save Failed',
+              message: 'Could not save changes: ' + (res.error || 'Unknown error')
+            });
+          }
+        } else if (response === 1) {
+          await window.electronAPI.confirmForceClose();
+        }
+        return;
+      }
       window.electronAPI.closeWindow();
     });
   }
@@ -1907,7 +2081,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (openSettingsBtn) {
     openSettingsBtn.addEventListener('click', openDatabaseModal);
   }
-  document.getElementById('dbStatusPill').addEventListener('click', openDatabaseModal);
+  const dbStatusPill = document.getElementById('dbStatusPill');
+  if (dbStatusPill) {
+    dbStatusPill.addEventListener('click', openDatabaseModal);
+  }
   document.getElementById('dbModalCloseBtn').addEventListener('click', closeDatabaseModal);
   document.getElementById('dbTestBtn').addEventListener('click', onTestDatabaseConnection);
   document.getElementById('dbSaveBtn').addEventListener('click', onSaveDatabaseSettings);
@@ -1922,18 +2099,49 @@ window.addEventListener('DOMContentLoaded', async () => {
   await refreshDatabaseStatus();
   syncDatabaseQuietly();
 
-  // 14. Handle Close with Save Request from Main Process
-  window.electronAPI.onRequestSaveAndClose(async () => {
-    const res = await window.electronAPI.saveDB(componentList);
-    if (res.ok) {
-      componentListOldSave = cloneComponentList(componentList);
-      await window.electronAPI.confirmForceClose();
-    } else {
-      await window.electronAPI.showMessage({
-        type: 'warning',
-        title: 'Save Failed',
-        message: 'Could not save changes: ' + res.error
+  // 14. Handle Close Guard with Unsaved Changes via In-App Material 3 Modal
+  if (window.electronAPI && window.electronAPI.onPromptCloseSave) {
+    window.electronAPI.onPromptCloseSave(async () => {
+      const { response } = await showAppDialog({
+        type: 'question',
+        buttons: ['Save & Close', "Don't Save", 'Cancel'],
+        defaultId: 0,
+        cancelId: 2,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes in your inventory. Do you want to save before closing?'
       });
-    }
-  });
+
+      if (response === 0) {
+        const res = await window.electronAPI.saveDB(componentList);
+        if (res.ok) {
+          componentListOldSave = cloneComponentList(componentList);
+          await window.electronAPI.confirmForceClose();
+        } else {
+          await showAppDialog({
+            type: 'warning',
+            title: 'Save Failed',
+            message: 'Could not save changes: ' + (res.error || 'Unknown error')
+          });
+        }
+      } else if (response === 1) {
+        await window.electronAPI.confirmForceClose();
+      }
+    });
+  }
+
+  if (window.electronAPI && window.electronAPI.onRequestSaveAndClose) {
+    window.electronAPI.onRequestSaveAndClose(async () => {
+      const res = await window.electronAPI.saveDB(componentList);
+      if (res.ok) {
+        componentListOldSave = cloneComponentList(componentList);
+        await window.electronAPI.confirmForceClose();
+      } else {
+        await showAppDialog({
+          type: 'warning',
+          title: 'Save Failed',
+          message: 'Could not save changes: ' + (res.error || 'Unknown error')
+        });
+      }
+    });
+  }
 });

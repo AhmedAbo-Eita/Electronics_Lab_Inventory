@@ -32,42 +32,13 @@
     </div>
 
     <div class="titlebar-actions">
-      <!-- Database & MySQL Sync Status Pill -->
-      <button id="dbStatusPill" class="db-status-pill ripple-btn" type="button" title="Configure Database & Remote MySQL Sync">
-        <span class="db-status-dot dot-offline" id="dbStatusDot"></span>
-        <span id="dbStatusLabel">Offline (Local)</span>
-      </button>
-
-      <!-- Settings Button (Theme & Database Configuration) -->
-      <button id="openSettingsBtn" class="titlebar-settings-btn ripple-btn" type="button" title="Application Settings & Appearance">
+      <!-- Modern Compact Animated Settings Button (Theme & Database Configuration) -->
+      <button id="openSettingsBtn" class="titlebar-settings-icon-btn ripple-btn" type="button" title="Settings (Appearance, Theme &amp; Database)">
         <svg class="settings-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
-        <span>Settings</span>
       </button>
-
-      <!-- Modern Light/Dark Mode Switch (Material 3 Chic Switch) -->
-      <div class="theme-switch-wrapper" id="themeSwitchBtn" role="switch" aria-checked="false" title="Switch Theme (Light / Dark)">
-        <svg class="theme-switch-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <div class="theme-switch-track">
-          <div class="theme-switch-thumb"></div>
-        </div>
-        <svg class="theme-switch-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
-        </svg>
-        <span class="theme-switch-text" id="themeSwitchText">Dark</span>
-      </div>
 
       <!-- In-App Window Controls (Always on the top right) -->
       <div class="titlebar-window-controls" role="group" aria-label="Window Controls">
@@ -240,28 +211,32 @@
             <div class="surface-card action-cluster-card">
               <div class="section-overline">DATABASE &amp; TOOLS</div>
               <div class="toolbar-grid">
-                <button id="importPushButton" class="btn-tonal ripple-btn" type="button" title="Import inventory components from Excel (.xlsx) or CSV file and save to database">
+                <button id="importPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-import" type="button" title="Import inventory components from Excel (.xlsx) or CSV file and save to database">
                   <img src="../../assets/Images/import.png" alt="" class="btn-icon" />
                   <span>Import Sheet</span>
                 </button>
-                <button id="exportPushButton" class="btn-tonal ripple-btn" type="button" title="Export inventory components to Excel (.xlsx) or CSV spreadsheet">
+                <button id="exportPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-export" type="button" title="Export inventory components to Excel (.xlsx) or CSV spreadsheet">
                   <img src="../../assets/Images/Export.png" alt="" class="btn-icon" />
                   <span>Export Sheet</span>
                 </button>
-                <button id="savePushButton" class="btn-filled-primary ripple-btn" type="button" title="Save changes to local SQLite database (and sync to MySQL)">
+                <button id="savePushButton" class="btn-tonal ripple-btn toolbar-action-btn action-save" type="button" title="Save changes to local SQLite database (and sync to MySQL)">
                   <img src="../../assets/Images/save_9584668.png" alt="" class="btn-icon" />
                   <span>Save Database</span>
                 </button>
-                <button id="resetPushButton" class="btn-tonal ripple-btn" type="button" title="Discard unsaved changes and reload last saved database state">
+                <button id="resetPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-revert" type="button" title="Discard unsaved changes and reload last saved database state">
                   <img src="../../assets/Images/return_10118885.png" alt="" class="btn-icon" />
                   <span>Revert Changes</span>
                 </button>
-                <button id="cleanPushButton" class="btn-tonal-danger ripple-btn" type="button" title="Clear all inventory components">
+                <button id="cleanPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-clear" type="button" title="Clear all inventory components">
                   <img src="../../assets/Images/clean.png" alt="" class="btn-icon" />
                   <span>Clear All</span>
                 </button>
-                <button id="saveExamplePushButton" class="btn-tonal ripple-btn" type="button" title="Download clean Excel (.xlsx) or CSV starter template">
-                  <img src="../../assets/Images/xlsx.png" alt="" class="btn-icon" />
+                <button id="saveExamplePushButton" class="btn-tonal ripple-btn toolbar-action-btn action-template" type="button" title="Download clean Excel (.xlsx) or CSV starter template">
+                  <svg class="btn-icon btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M8 13h8M8 17h8M12 13v8"></path>
+                  </svg>
                   <span>Template</span>
                 </button>
               </div>
@@ -416,27 +391,27 @@
                   <div class="inspector-cards-grid span-full">
                     <div class="inspector-tile">
                       <span class="tile-label">Quantity in Stock</span>
-                      <div id="foundedQuantityLabel" class="founded-result-badge">â€”</div>
+                      <div id="foundedQuantityLabel" class="founded-result-badge">-</div>
                     </div>
                     <div class="inspector-tile">
                       <span class="tile-label">Component Type</span>
-                      <div id="foundedTypeLable" class="founded-result-badge">â€”</div>
+                      <div id="foundedTypeLable" class="founded-result-badge">-</div>
                     </div>
                     <div class="inspector-tile">
                       <span class="tile-label">Electrical Value</span>
-                      <div id="foundedValueLabel" class="founded-result-badge">â€”</div>
+                      <div id="foundedValueLabel" class="founded-result-badge">-</div>
                     </div>
                     <div class="inspector-tile">
                       <span class="tile-label">Footprint Package</span>
-                      <div id="foundedFootprintLabel" class="founded-result-badge">â€”</div>
+                      <div id="foundedFootprintLabel" class="founded-result-badge">-</div>
                     </div>
                     <div class="inspector-tile">
                       <span class="tile-label">Lab Location</span>
-                      <div id="foundedLocationLable" class="founded-result-badge">â€”</div>
+                      <div id="foundedLocationLable" class="founded-result-badge">-</div>
                     </div>
                     <div class="inspector-tile">
                       <span class="tile-label">Customer Code</span>
-                      <div id="foundedCustomerCodeLabel" class="founded-result-badge">â€”</div>
+                      <div id="foundedCustomerCodeLabel" class="founded-result-badge">-</div>
                     </div>
                   </div>
 
@@ -481,43 +456,46 @@
               </div>
 
               <div class="bom-action-buttons">
-                <button id="ImportBomPushButton" class="btn-filled-primary ripple-btn" type="button" title="Import BOM from Excel (.xlsx) or CSV file (KiCad, Altium, Eagle)">
-                  <img src="../../assets/Images/import.png" alt="" class="btn-icon-sm" />
+                <button id="ImportBomPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-import" type="button" title="Import BOM from Excel (.xlsx) or CSV file (KiCad, Altium, Eagle)">
+                  <img src="../../assets/Images/import.png" alt="" class="btn-icon" />
                   <span>Import BOM</span>
                 </button>
 
                 <button
                   id="loadSampleBomPushButton"
-                  class="btn-tonal-green ripple-btn"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-sample"
                   type="button"
                   title="Load a sample board BOM to test availability &amp; stock deduction"
                 >
-                  Load Sample BOM
+                  <img src="../../assets/Images/package_6215997.png" alt="" class="btn-icon" />
+                  <span>Sample BOM</span>
                 </button>
 
                 <button
                   id="exportBomReportPushButton"
-                  class="btn-tonal-teal ripple-btn"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-export"
                   type="button"
                   title="Export full BOM availability and shortage report to Excel (.xlsx) or CSV"
                   disabled
                 >
-                  <img src="../../assets/Images/Export.png" alt="" class="btn-icon-sm" />
+                  <img src="../../assets/Images/Export.png" alt="" class="btn-icon" />
                   <span>Export Report</span>
                 </button>
 
                 <button
                   id="deductBomStockPushButton"
-                  class="btn-filled-primary ripple-btn"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-deduct"
                   type="button"
                   title="Deduct required BOM quantities from Lab Inventory for this board build"
                   disabled
                 >
-                  Deduct Stock for Build
+                  <img src="../../assets/Images/chip_3459062.png" alt="" class="btn-icon" />
+                  <span>Deduct Stock</span>
                 </button>
 
-                <button id="clearBomPushButton" class="btn-tonal-danger ripple-btn" type="button" disabled>
-                  Clear BOM
+                <button id="clearBomPushButton" class="btn-tonal ripple-btn toolbar-action-btn action-clear" type="button" title="Clear BOM items from viewer" disabled>
+                  <img src="../../assets/Images/clean.png" alt="" class="btn-icon" />
+                  <span>Clear BOM</span>
                 </button>
               </div>
             </div>
@@ -764,6 +742,7 @@
             <p><strong>3. Example SQL Query</strong>:
               <code>SELECT mpn, quantity, value, footprint, location FROM lab_inventory;</code>
             </p>
+            </div>
           </div>
         </div>
       </div>
@@ -773,6 +752,22 @@
         <button id="dbSyncBtn" class="btn-tonal-teal ripple-btn" type="button">Sync Now</button>
         <button id="dbSaveBtn" class="btn-filled-primary ripple-btn" type="button">Save &amp; Connect</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modern In-App Material 3 Alert & Confirmation Dialog (Dark & Light Theme) -->
+  <div id="appDialogModal" class="modal-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
+    <div class="modal-card app-dialog-card">
+      <div class="app-dialog-header">
+        <div id="appDialogIconWrap" class="app-dialog-icon-wrap icon-type-info"></div>
+        <div class="app-dialog-title-group">
+          <h3 id="appDialogTitle" class="app-dialog-title">Notification</h3>
+        </div>
+      </div>
+      <div class="app-dialog-body">
+        <p id="appDialogMessage" class="app-dialog-message"></p>
+      </div>
+      <div id="appDialogActions" class="app-dialog-actions"></div>
     </div>
   </div>
 

@@ -69,6 +69,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   /**
+   * Subscribes to the in-app close prompt when closing window with unsaved changes.
+   * @param {() => void} callback
+   */
+  onPromptCloseSave: (callback) => {
+    ipcRenderer.on('app:prompt-close-save', () => callback());
+  },
+
+  /**
    * Shows a native dialog message box.
    * @param {Electron.MessageBoxOptions} options
    * @returns {Promise<Electron.MessageBoxReturnValue>}

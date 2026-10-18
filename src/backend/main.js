@@ -81,32 +81,14 @@ function createWindow() {
   // Load frontend HTML
   mainWindow.loadFile(path.join(__dirname, '../frontend/index.html'));
 
-  // Intercept window close to prompt user if unsaved changes exist
+  // Intercept window close to prompt user if unsaved changes exist via in-app dialog
   mainWindow.on('close', async (e) => {
     if (forceClose || !hasUnsavedChanges) {
       return;
     }
 
     e.preventDefault();
-
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      type: 'question',
-      buttons: ['Yes', 'No', 'Cancel'],
-      defaultId: 0,
-      cancelId: 2,
-      title: 'Save Changes',
-      message: 'You have unsaved changes. Do you want to save before closing?'
-    });
-
-    if (response === 0) {
-      // Ask renderer to save changes and then close
-      mainWindow.webContents.send('app:request-save-and-close');
-    } else if (response === 1) {
-      // Discard changes and close immediately
-      forceClose = true;
-      mainWindow.close();
-    }
-    // response === 2 (Cancel): keep window open
+    mainWindow.webContents.send('app:prompt-close-save');
   });
 }
 
