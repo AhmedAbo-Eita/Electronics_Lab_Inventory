@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Production builds and packaged binaries
+release/
+dist/
+
+# Local runtime data, databases, and credentials
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/mysql_config.json
+mysql_config.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor folders
+.vscode/
+.idea/
+*.swp
+*.swo

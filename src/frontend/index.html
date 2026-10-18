@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self';" />
+  <title>Lab Inventory</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="dark-theme">
+  <!-- Initial Splash / Loading Screen -->
+  <div id="appSplashScreen" class="app-splash-screen">
+    <div class="splash-card">
+      <div class="splash-brand">
+        <img class="splash-logo splash-logo-dark" src="../../assets/Images/appLogo_dark.png" alt="Lab Inventory" />
+        <img class="splash-logo splash-logo-light" src="../../assets/Images/appLogo.png" alt="Lab Inventory" />
+      </div>
+      <div class="splash-loader-track">
+        <div class="splash-loader-bar"></div>
+      </div>
+      <div class="splash-status-text" id="splashStatusText">Initializing components &amp; database...</div>
+    </div>
+  </div>
+
+  <!-- Dedicated Top Titlebar (Always on the top, Spotify-Style) -->
+  <div class="top-titlebar-spotify" id="topTitleBar">
+    <div class="titlebar-drag-region">
+      <div class="titlebar-app-identity">
+        <img src="../../assets/Images/package_6215997.png" class="titlebar-icon" alt="" />
+        <span class="titlebar-title">Lab Inventory</span>
+      </div>
+    </div>
+
+    <div class="titlebar-actions">
+      <!-- Database & MySQL Sync Status Pill -->
+      <button id="dbStatusPill" class="db-status-pill ripple-btn" type="button" title="Configure Database & Remote MySQL Sync">
+        <span class="db-status-dot dot-offline" id="dbStatusDot"></span>
+        <span id="dbStatusLabel">Offline (Local)</span>
+      </button>
+
+      <!-- Modern Light/Dark Mode Switch (Material 3 Chic Switch) -->
+      <div class="theme-switch-wrapper" id="themeSwitchBtn" role="switch" aria-checked="false" title="Switch Theme (Light / Dark)">
+        <svg class="theme-switch-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <div class="theme-switch-track">
+          <div class="theme-switch-thumb"></div>
+        </div>
+        <svg class="theme-switch-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+        </svg>
+        <span class="theme-switch-text" id="themeSwitchText">Dark</span>
+      </div>
+
+      <!-- In-App Window Controls (Always on the top right) -->
+      <div class="titlebar-window-controls" role="group" aria-label="Window Controls">
+        <button id="winMinBtn" class="titlebar-win-btn win-btn-minimize" type="button" title="Minimize Window">
+          <svg viewBox="0 0 12 12" width="10" height="10">
+            <line x1="1.5" y1="6" x2="10.5" y2="6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="winMaxBtn" class="titlebar-win-btn win-btn-maximize" type="button" title="Maximize Window">
+          <svg id="winMaxIcon" viewBox="0 0 12 12" width="10" height="10">
+            <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          </svg>
+          <svg id="winRestoreIcon" class="hidden" viewBox="0 0 12 12" width="10" height="10">
+            <path d="M3.5 1.5h6a1 1 0 011 1v6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+            <rect x="1.5" y="3.5" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"/>
+          </svg>
+        </button>
+        <button id="winCloseBtn" class="titlebar-win-btn win-btn-close" type="button" title="Quit Application">
+          <svg viewBox="0 0 12 12" width="10" height="10">
+            <line x1="2.5" y1="2.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <line x1="9.5" y1="2.5" x2="2.5" y2="9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-root">
+    <!-- Main App Header Bar -->
+    <header class="top-header-bar">
+      <div class="brand-cluster">
+        <div class="logo-wrap">
+          <img id="appLogoLabel" class="logo-light" src="../../assets/Images/appLogo.png" alt="Lab Inventory Logo" />
+          <img class="logo-dark" src="../../assets/Images/appLogo_dark.png" alt="Lab Inventory Logo" />
+        </div>
+        <!-- Main Navigation Segmented Pill Bar -->
+        <nav class="main-nav-pills" role="tablist" aria-label="Main Views">
+          <button class="nav-pill active ripple-btn" data-main-tab="inventoryTableTab" type="button">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+            <span>Inventory</span>
+          </button>
+          <button class="nav-pill ripple-btn" data-main-tab="BOMTab" type="button">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+            </svg>
+            <span>BOM Analyzer &amp; Build</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Interactive KPI Summary Strip (Always beside each other on one row) -->
+      <div class="kpi-strip">
+        <div class="stat-card interactive-card" id="statCardParts" title="Click to show all components">
+          <div class="stat-card-top">
+            <span class="stat-card-title">UNIQUE PARTS</span>
+            <span class="stat-dot dot-blue"></span>
+          </div>
+          <div class="stat-card-value" id="statUniquePartsValue">0</div>
+        </div>
+
+        <div class="stat-card interactive-card" id="statCardUnits" title="Click to filter In-Stock components">
+          <div class="stat-card-top">
+            <span class="stat-card-title">TOTAL UNITS</span>
+            <span class="stat-dot dot-green"></span>
+          </div>
+          <div class="stat-card-value" id="statTotalUnitsValue">0</div>
+        </div>
+
+        <div class="stat-card interactive-card" id="statCardLowStock" title="Click to filter Low / Out-of-Stock components">
+          <div class="stat-card-top">
+            <span class="stat-card-title">LOW / OUT</span>
+            <span class="stat-dot dot-amber"></span>
+          </div>
+          <div class="stat-card-value" id="statLowStockValue">0</div>
+        </div>
+
+        <div class="stat-card interactive-card" id="statCardSync" title="Click to save changes to database">
+          <div class="stat-card-top">
+            <span class="stat-card-title">SYNC STATUS</span>
+            <span class="stat-dot dot-sync" id="syncStatusDot"></span>
+          </div>
+          <div class="stat-card-value status-saved" id="statSyncStatusValue">Saved</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-tab-container">
+      <!-- TAB 1: Inventory Table -->
+      <section id="inventoryTableTab" class="tab-pane active">
+        <!-- Google Search & Filter Bar -->
+        <div id="dashboardFilterBar" class="filter-bar">
+          <div class="google-search-pill">
+            <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              id="quickFilterLineEdit"
+              type="text"
+              placeholder="Search components by MPN, Value, Footprint, Location, or Code..."
+              autocomplete="off"
+            />
+            <button id="quickFilterClearX" class="input-clear-x hidden" type="button" title="Clear search">&times;</button>
+          </div>
+
+          <div class="filter-chips-group">
+            <div class="select-chip-wrap">
+              <span class="chip-label">Type</span>
+              <select id="typeFilterComboBox" aria-label="Filter by Component Type">
+                <option value="All Types">All Types</option>
+                <option value="IC">IC</option>
+                <option value="MOSFET">MOSFET</option>
+                <option value="Transistor">Transistor</option>
+                <option value="Connector">Connector</option>
+                <option value="Resistor">Resistor</option>
+                <option value="Capacitor">Capacitor</option>
+                <option value="Inductor">Inductor</option>
+                <option value="Diode">Diode</option>
+              </select>
+            </div>
+
+            <div class="select-chip-wrap">
+              <span class="chip-label">Stock</span>
+              <select id="stockFilterComboBox" aria-label="Filter by Stock Level">
+                <option value="All Stock">All Stock</option>
+                <option value="In Stock (&gt; 0)">In Stock (&gt; 0)</option>
+                <option value="Healthy Stock (&gt; 10)">Healthy Stock (&gt; 10)</option>
+                <option value="Low Stock (1 - 10)">Low Stock (1 - 10)</option>
+                <option value="Out of Stock (0)">Out of Stock (0)</option>
+              </select>
+            </div>
+
+            <button id="clearFilterPushButton" class="btn-tonal ripple-btn" type="button">Reset</button>
+            <span id="visibleRowsBadgeLabel" class="visible-rows-badge">Showing 0 of 0</span>
+          </div>
+        </div>
+
+        <!-- Split Workspace: Table (Left) + Inspector & Quick Actions (Right) -->
+        <div class="inventory-split-layout">
+          <!-- Left: Elevated Data Table Card -->
+          <div class="surface-card table-card">
+            <div class="table-wrapper" id="inventoryTableWrapper">
+              <table id="inventoryTableWidget" class="data-table">
+                <thead>
+                  <tr>
+                    <th data-col="0" class="sortable">Manufacturer Part Number <span class="sort-indicator"></span></th>
+                    <th data-col="1" class="sortable cell-center">Quantity <span class="sort-indicator"></span></th>
+                    <th data-col="2" class="sortable">Type <span class="sort-indicator"></span></th>
+                    <th data-col="3" class="sortable">Value <span class="sort-indicator"></span></th>
+                    <th data-col="4" class="sortable">Footprint <span class="sort-indicator"></span></th>
+                    <th data-col="5" class="sortable">Lab Location <span class="sort-indicator"></span></th>
+                    <th data-col="6" class="sortable">Customer Code <span class="sort-indicator"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right: Inspector & Action Sidebar -->
+          <aside class="right-panel-box" id="groupBox_3">
+            <!-- Compact Google Action Bar -->
+            <div class="surface-card action-cluster-card">
+              <div class="section-overline">DATABASE &amp; TOOLS</div>
+              <div class="toolbar-grid">
+                <button id="importPushButton" class="btn-tonal ripple-btn" type="button" title="Import components from an external SQLite (.db) database file">
+                  <img src="../../assets/Images/import.png" alt="" class="btn-icon" />
+                  <span>Import DB</span>
+                </button>
+                <button id="exportPushButton" class="btn-tonal ripple-btn" type="button" title="Export inventory backup to an external SQLite (.db) database file">
+                  <img src="../../assets/Images/Export.png" alt="" class="btn-icon" />
+                  <span>Export DB</span>
+                </button>
+                <button id="savePushButton" class="btn-filled-primary ripple-btn" type="button" title="Save changes to local SQLite database">
+                  <img src="../../assets/Images/save_9584668.png" alt="" class="btn-icon" />
+                  <span>Save Database</span>
+                </button>
+                <button id="resetPushButton" class="btn-tonal ripple-btn" type="button" title="Discard unsaved changes and reload last saved database state">
+                  <img src="../../assets/Images/return_10118885.png" alt="" class="btn-icon" />
+                  <span>Revert Changes</span>
+                </button>
+                <button id="cleanPushButton" class="btn-tonal-danger ripple-btn" type="button" title="Clear all inventory components">
+                  <img src="../../assets/Images/clean.png" alt="" class="btn-icon" />
+                  <span>Clear All</span>
+                </button>
+                <button id="saveExamplePushButton" class="btn-tonal ripple-btn" type="button" title="Save a starter SQLite (.db) template database">
+                  <img src="../../assets/Images/xlsx.png" alt="" class="btn-icon" />
+                  <span>DB Template</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-Tabs Card (Add / Edit / Search) -->
+            <div class="surface-card inspector-card">
+              <div class="segmented-sub-tabs" role="tablist">
+                <button class="sub-tab-btn active ripple-btn" data-sub-tab="addComponentTab" type="button">Add New</button>
+                <button class="sub-tab-btn ripple-btn" data-sub-tab="EditComponentTab" type="button">Edit Part</button>
+                <button class="sub-tab-btn ripple-btn" data-sub-tab="searchComponentTab" type="button">Inspector</button>
+              </div>
+
+              <!-- Sub-Tab 0: Add New Component -->
+              <div id="addComponentTab" class="sub-tab-pane active">
+                <div class="form-grid">
+                  <div class="field-group span-full">
+                    <label for="MPNLineEdit">Manufacturer Part Number (MPN)</label>
+                    <input id="MPNLineEdit" type="text" placeholder="e.g. STM32F103C8T6" autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="quantitySpinBox">Quantity</label>
+                    <input id="quantitySpinBox" type="number" min="0" max="99999" value="0" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="typeComboBox">Component Type</label>
+                    <select id="typeComboBox">
+                      <option value="IC">IC</option>
+                      <option value="MOSFET">MOSFET</option>
+                      <option value="Transistor">Transistor</option>
+                      <option value="Connector">Connector</option>
+                      <option value="Resistor">Resistor</option>
+                      <option value="Capacitor">Capacitor</option>
+                      <option value="Inductor">Inductor</option>
+                      <option value="Diode">Diode</option>
+                    </select>
+                  </div>
+
+                  <div class="field-group">
+                    <label for="addValueLineEdit">Value / Rating</label>
+                    <input id="addValueLineEdit" type="text" placeholder="e.g. 10k, 100nF, 3.3V" autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="footprintComboBox">Footprint / Package</label>
+                    <input
+                      id="footprintComboBox"
+                      type="text"
+                      list="footprintOptionsList"
+                      value="SOT-8"
+                      placeholder="Select or type..."
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="locationLineEdit">Lab Location</label>
+                    <input id="locationLineEdit" type="text" placeholder="e.g. Cabinet A - Bin 01" autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="addCustomerCodeLineEdit">Customer / Designator Code</label>
+                    <input id="addCustomerCodeLineEdit" type="text" placeholder="e.g. MCU-001" autocomplete="off" />
+                  </div>
+
+                  <div class="form-footer-actions span-full">
+                    <button id="clearPushButton" class="btn-tonal ripple-btn" type="button">Reset Form</button>
+                    <button id="addPushButton" class="btn-filled-primary flex-1 text-center ripple-btn" type="button">
+                      + Add Component
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sub-Tab 1: Edit Component -->
+              <div id="EditComponentTab" class="sub-tab-pane">
+                <div class="form-grid">
+                  <div class="field-group span-full">
+                    <label for="editMPNLineEdit">Target Component MPN</label>
+                    <div class="inline-btn-row">
+                      <input id="editMPNLineEdit" class="flex-1" type="text" placeholder="Click a table row or type MPN..." autocomplete="off" />
+                      <button id="editFindpushButton" class="btn-filled-primary ripple-btn" type="button">Select</button>
+                      <button id="editClearSearchpushButton" class="btn-tonal ripple-btn" type="button">Unlock</button>
+                    </div>
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editQuantitySpinBox">Stock Quantity</label>
+                    <div class="stock-adjust-row">
+                      <input id="editQuantitySpinBox" type="number" min="0" max="999999" value="0" disabled />
+                      <button id="decStockPushButton" class="btn-stock-step ripple-btn" type="button" title="Decrease by 1" disabled>&minus;1</button>
+                      <button id="incStockPushButton" class="btn-stock-step ripple-btn" type="button" title="Increase by 1" disabled>+1</button>
+                    </div>
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editTypeComboBox">Component Type</label>
+                    <select id="editTypeComboBox" disabled>
+                      <option value="IC">IC</option>
+                      <option value="MOSFET">MOSFET</option>
+                      <option value="Transistor">Transistor</option>
+                      <option value="Connector">Connector</option>
+                      <option value="Resistor">Resistor</option>
+                      <option value="Capacitor">Capacitor</option>
+                      <option value="Inductor">Inductor</option>
+                      <option value="Diode">Diode</option>
+                    </select>
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editValueLineEdit">Component Value</label>
+                    <input id="editValueLineEdit" type="text" placeholder="Value (e.g. 10k, 100nF)" disabled autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editFootprintLineEdit">Component Footprint</label>
+                    <input id="editFootprintLineEdit" type="text" list="footprintOptionsList" disabled autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editLocatioLineEdit">Lab Location</label>
+                    <input id="editLocatioLineEdit" type="text" disabled autocomplete="off" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editCustomerCodeLineEdit">Customer Code</label>
+                    <input id="editCustomerCodeLineEdit" type="text" placeholder="Designator / Code" disabled autocomplete="off" />
+                  </div>
+
+                  <div class="form-footer-actions span-full">
+                    <button id="deleteComponentpushButton" class="btn-tonal-danger ripple-btn" type="button" disabled>Delete</button>
+                    <button id="applyEditspushButton" class="btn-filled-primary flex-1 text-center ripple-btn" type="button" disabled>
+                      Apply Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sub-Tab 2: Search / Inspector Component -->
+              <div id="searchComponentTab" class="sub-tab-pane">
+                <div class="form-grid">
+                  <div class="field-group span-full">
+                    <label for="searchMPNLineEdit">Find by Manufacturer Part Number</label>
+                    <div class="inline-btn-row">
+                      <input id="searchMPNLineEdit" class="flex-1" type="text" placeholder="Type MPN to inspect..." autocomplete="off" />
+                      <button id="findPushButton" class="btn-filled-primary ripple-btn" type="button">Find</button>
+                    </div>
+                  </div>
+
+                  <div class="inspector-cards-grid span-full">
+                    <div class="inspector-tile">
+                      <span class="tile-label">Quantity in Stock</span>
+                      <div id="foundedQuantityLabel" class="founded-result-badge">â€”</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Component Type</span>
+                      <div id="foundedTypeLable" class="founded-result-badge">â€”</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Electrical Value</span>
+                      <div id="foundedValueLabel" class="founded-result-badge">â€”</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Footprint Package</span>
+                      <div id="foundedFootprintLabel" class="founded-result-badge">â€”</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Lab Location</span>
+                      <div id="foundedLocationLable" class="founded-result-badge">â€”</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Customer Code</span>
+                      <div id="foundedCustomerCodeLabel" class="founded-result-badge">â€”</div>
+                    </div>
+                  </div>
+
+                  <div class="form-footer-actions span-full">
+                    <button id="EditComponentPushButton" class="btn-filled-primary flex-1 text-center ripple-btn" type="button">
+                      Open in Editor
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- TAB 2: BOM Analyzer & Build -->
+      <section id="BOMTab" class="tab-pane">
+        <div class="bom-layout">
+          <!-- BOM Controls & Actions Card -->
+          <div class="surface-card bom-controls-card" id="UploadBomFileGroupBox">
+            <div class="bom-controls-bar">
+              <div class="bom-board-field">
+                <label for="BomBoardNamelineEdit">Board / Project Name</label>
+                <input
+                  id="BomBoardNamelineEdit"
+                  type="text"
+                  placeholder="e.g., STM32_Flight_Controller_RevB"
+                  autocomplete="off"
+                />
+              </div>
+
+              <div class="bom-qty-field">
+                <label for="bomBoardsSpinBox">Boards to Build</label>
+                <input
+                  id="bomBoardsSpinBox"
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value="1"
+                  title="Number of PCB assemblies to build (multiplies required BOM quantities)"
+                />
+              </div>
+
+              <div class="bom-action-buttons">
+                <button id="ImportBomPushButton" class="btn-filled-primary ripple-btn" type="button" title="Import BOM components from a SQLite (.db) database file">
+                  <img src="../../assets/Images/import.png" alt="" class="btn-icon-sm" />
+                  <span>Import BOM DB</span>
+                </button>
+
+                <button
+                  id="loadSampleBomPushButton"
+                  class="btn-tonal-green ripple-btn"
+                  type="button"
+                  title="Load a sample board BOM to test availability &amp; stock deduction"
+                >
+                  Load Sample BOM
+                </button>
+
+                <button
+                  id="exportBomReportPushButton"
+                  class="btn-tonal-teal ripple-btn"
+                  type="button"
+                  title="Export full BOM availability and shortage report to a SQLite (.db) database file"
+                  disabled
+                >
+                  <img src="../../assets/Images/Export.png" alt="" class="btn-icon-sm" />
+                  <span>Export Report</span>
+                </button>
+
+                <button
+                  id="deductBomStockPushButton"
+                  class="btn-filled-primary ripple-btn"
+                  type="button"
+                  title="Deduct required BOM quantities from Lab Inventory for this board build"
+                  disabled
+                >
+                  Deduct Stock for Build
+                </button>
+
+                <button id="clearBomPushButton" class="btn-tonal-danger ripple-btn" type="button" disabled>
+                  Clear BOM
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOM Readiness Summary Banner -->
+          <div id="bomSummaryBanner" class="bom-summary-banner">
+            <div class="bom-metric-pill bom-badge-total">
+              <span class="bom-metric-label">UNIQUE BOM PARTS</span>
+              <span id="bomSummaryTotalLabel" class="bom-metric-value">0</span>
+            </div>
+            <div class="bom-metric-pill bom-badge-ready">
+              <span class="bom-metric-label">READY IN STOCK</span>
+              <span id="bomSummaryReadyLabel" class="bom-metric-value">0</span>
+            </div>
+            <div class="bom-metric-pill bom-badge-shortage">
+              <span class="bom-metric-label">SHORTAGES / MISSING</span>
+              <span id="bomSummaryShortageLabel" class="bom-metric-value">0</span>
+            </div>
+            <div class="bom-metric-pill bom-badge-maxbuilds">
+              <span class="bom-metric-label">MAX BUILDABLE BOARDS</span>
+              <span id="bomSummaryMaxBuildsLabel" class="bom-metric-value">0</span>
+            </div>
+          </div>
+
+          <!-- BOM Table Card -->
+          <div class="surface-card table-card flex-1">
+            <div class="table-wrapper">
+              <table id="BomTableWidget" class="data-table">
+                <thead>
+                  <tr>
+                    <th data-bom-col="0" class="sortable">Manufacturer Part Number <span class="sort-indicator"></span></th>
+                    <th data-bom-col="1" class="sortable">Type <span class="sort-indicator"></span></th>
+                    <th data-bom-col="2" class="sortable">Value <span class="sort-indicator"></span></th>
+                    <th data-bom-col="3" class="sortable">Footprint <span class="sort-indicator"></span></th>
+                    <th data-bom-col="4" class="sortable">Designator / Code <span class="sort-indicator"></span></th>
+                    <th data-bom-col="5" class="sortable cell-center">Qty / Board <span class="sort-indicator"></span></th>
+                    <th data-bom-col="6" class="sortable cell-center">Total Req <span class="sort-indicator"></span></th>
+                    <th data-bom-col="7" class="sortable cell-center">In Stock <span class="sort-indicator"></span></th>
+                    <th data-bom-col="8" class="sortable cell-center">Shortage <span class="sort-indicator"></span></th>
+                    <th data-bom-col="9" class="sortable">Lab Location <span class="sort-indicator"></span></th>
+                    <th data-bom-col="10" class="sortable cell-center">Status <span class="sort-indicator"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="bomTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Minimalist Footer -->
+    <footer id="createdbylabel" class="app-footer">
+      <span>This Application Created By: <strong>Ahmed Aboeita</strong></span>
+      <span class="footer-hint">Tip: Click any row to inspect, or double-click cells in "Edit Part" mode for inline editing.</span>
+    </footer>
+  </div>
+
+  <!-- Database & MySQL Remote Sync Modal -->
+  <div id="dbSettingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dbModalTitle">
+    <div class="modal-card db-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          <div>
+            <h2 id="dbModalTitle" class="modal-title">Database &amp; Remote Sync</h2>
+            <p class="modal-subtitle">Work offline with local storage, or connect to a remote MySQL server for real-time team synchronization.</p>
+          </div>
+        </div>
+        <button id="dbModalCloseBtn" class="modal-close-btn ripple-btn" type="button" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Live Connection Status Card -->
+        <div class="db-status-banner" id="dbStatusBanner">
+          <div class="db-status-indicator">
+            <span class="db-status-dot dot-offline" id="modalStatusDot"></span>
+            <span class="db-status-text" id="modalStatusText">Offline (Local SQLite Database)</span>
+          </div>
+          <span class="db-last-sync" id="modalLastSyncText">Last sync: Never</span>
+        </div>
+
+        <!-- Connection Settings Form -->
+        <form id="dbSettingsForm" class="db-form-grid" onsubmit="return false;">
+          <div class="field-group span-full toggle-field-group">
+            <label class="toggle-container" for="dbEnableSyncToggle">
+              <input type="checkbox" id="dbEnableSyncToggle" />
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Enable Online MySQL Sync</span>
+            </label>
+            <span class="field-hint">When disabled, all data is stored locally in <code>data/lab_inventory.db</code> (SQLite).</span>
+          </div>
+
+          <div class="field-group">
+            <label for="dbHostInput">MySQL Host / IP</label>
+            <input type="text" id="dbHostInput" placeholder="localhost or 192.168.1.100" autocomplete="off" />
+          </div>
+
+          <div class="field-group">
+            <label for="dbPortInput">Port</label>
+            <input type="number" id="dbPortInput" placeholder="3306" value="3306" autocomplete="off" />
+          </div>
+
+          <div class="field-group">
+            <label for="dbNameInput">Database Name</label>
+            <input type="text" id="dbNameInput" placeholder="lab_inventory_db" autocomplete="off" />
+          </div>
+
+          <div class="field-group">
+            <label for="dbUserInput">Username</label>
+            <input type="text" id="dbUserInput" placeholder="root or lab_user" autocomplete="off" />
+          </div>
+
+          <div class="field-group span-full">
+            <label for="dbPasswordInput">Password</label>
+            <input type="password" id="dbPasswordInput" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+        </form>
+
+        <!-- Test Connection Result Feedback -->
+        <div id="dbTestFeedback" class="db-feedback-box hidden"></div>
+
+        <!-- How to View & Interface Info Box -->
+        <div class="db-guide-box">
+          <div class="db-guide-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="guide-icon">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <strong>How to Access the Database in DBeaver</strong>
+          </div>
+          <div class="db-guide-content">
+            <p><strong>1. Local Offline Database (SQLite)</strong>: In DBeaver, click <em>New Connection</em> &rarr; <em>SQLite</em> &rarr; browse to <code>data/lab_inventory.db</code> &rarr; click <em>Finish</em>. You will see the <code>lab_inventory</code> table with full SQL query support.</p>
+            <p><strong>2. Remote Online Database (MySQL)</strong>: In DBeaver, click <em>New Connection</em> &rarr; <em>MySQL</em> &rarr; enter your MySQL credentials. The app automatically creates and synchronizes the <code>lab_inventory</code> table on both ends.</p>
+            <p><strong>3. Example SQL Query</strong>:
+              <code>SELECT mpn, quantity, value, footprint, location FROM lab_inventory;</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="dbTestBtn" class="btn-outlined ripple-btn" type="button">Test Connection</button>
+        <button id="dbSyncBtn" class="btn-tonal-teal ripple-btn" type="button">Sync Now</button>
+        <button id="dbSaveBtn" class="btn-filled-primary ripple-btn" type="button">Save &amp; Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Material 3 Snackbar / Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Standard SMD / THT Footprint Options -->
+  <datalist id="footprintOptionsList">
+    <option value="SOT-8"></option>
+    <option value="TSSOP-8"></option>
+    <option value="0201"></option>
+    <option value="0201-A"></option>
+    <option value="0402"></option>
+    <option value="0603"></option>
+    <option value="0805"></option>
+    <option value="1206"></option>
+    <option value="LQFP-48"></option>
+    <option value="SMD-38"></option>
+    <option value="SOP-16"></option>
+    <option value="TH-2P"></option>
+    <option value="CSP0201"></option>
+    <option value="CSP1006-2"></option>
+    <option value="DFN1006-2"></option>
+    <option value="DFN1006-2L"></option>
+    <option value="DFN1006-3"></option>
+    <option value="DFN1308-5"></option>
+    <option value="DFN1510-6"></option>
+    <option value="DFN1608-2"></option>
+    <option value="DFN1610-2"></option>
+    <option value="DFN1610-6"></option>
+    <option value="DFN1616-6"></option>
+    <option value="DFN1616-6L"></option>
+    <option value="DFN2020-3A"></option>
+    <option value="DFN2020-3L"></option>
+    <option value="DFN2020-6J"></option>
+    <option value="DFN2020-6JA"></option>
+    <option value="DFN2020-6L"></option>
+    <option value="DFN2020-6LE"></option>
+    <option value="DFN-10"></option>
+    <option value="DFN2626-10"></option>
+    <option value="DFN3333"></option>
+    <option value="DFN3333-8"></option>
+    <option value="DFN3333-D"></option>
+    <option value="DFN4120-10"></option>
+    <option value="DFN5060"></option>
+    <option value="DFN5060-8D"></option>
+    <option value="DFN8080A"></option>
+    <option value="D2-PAK"></option>
+    <option value="DPAK"></option>
+    <option value="DO-218AB"></option>
+    <option value="DO-221AC"></option>
+    <option value="SMA"></option>
+    <option value="SMB"></option>
+    <option value="SMBF"></option>
+    <option value="SMC"></option>
+    <option value="SME"></option>
+    <option value="SMG"></option>
+    <option value="SOD-123"></option>
+    <option value="SOD-123FL"></option>
+    <option value="SOD-123HE1"></option>
+    <option value="SOD-123TFL"></option>
+    <option value="SOD-323"></option>
+    <option value="SOD-323FL"></option>
+    <option value="SOD-323HE"></option>
+    <option value="SOD-323HL"></option>
+    <option value="SOD-523"></option>
+    <option value="SOD-923"></option>
+    <option value="SOP-8"></option>
+    <option value="SOT-143"></option>
+    <option value="SOT-223"></option>
+    <option value="SOT-23"></option>
+    <option value="SOT-23-3L"></option>
+    <option value="SOT23-6L"></option>
+    <option value="SOT-323"></option>
+    <option value="SOT-363"></option>
+    <option value="SOT-523"></option>
+    <option value="SOT-563"></option>
+    <option value="SOT-723"></option>
+    <option value="SOT-89"></option>
+    <option value="TO-277"></option>
+    <option value="SDB-1"></option>
+    <option value="DB-1"></option>
+    <option value="DBL-1"></option>
+    <option value="SDBL-1"></option>
+    <option value="LMBS-1"></option>
+    <option value="MBLS-1"></option>
+    <option value="MBS-1"></option>
+    <option value="TBL"></option>
+    <option value="TBS"></option>
+    <option value="TBN"></option>
+    <option value="TOLL-8L"></option>
+    <option value="D3K"></option>
+    <option value="JA"></option>
+    <option value="JB"></option>
+    <option value="GBJ"></option>
+    <option value="GBL"></option>
+    <option value="GBP"></option>
+    <option value="KBJ"></option>
+    <option value="GBU"></option>
+    <option value="TSB-5"></option>
+    <option value="PB-6"></option>
+    <option value="PB-10"></option>
+    <option value="PB"></option>
+    <option value="GBPC"></option>
+    <option value="GBPC-H"></option>
+    <option value="GBPC-W"></option>
+    <option value="MT-35A"></option>
+    <option value="MB-35"></option>
+    <option value="MB-35W"></option>
+    <option value="MP-50"></option>
+    <option value="MP-50W"></option>
+    <option value="AK"></option>
+    <option value="TO-220"></option>
+    <option value="TO-220 TO-220AB"></option>
+    <option value="TO-220AB(H)"></option>
+    <option value="TO-220AC"></option>
+    <option value="TO-220F"></option>
+    <option value="ITO-220AB"></option>
+    <option value="ITO-220AC"></option>
+    <option value="TO-247"></option>
+    <option value="TO-247-2L"></option>
+    <option value="TO-247AD"></option>
+    <option value="TO-247AB"></option>
+    <option value="TO-247-4"></option>
+    <option value="TO-262L"></option>
+    <option value="A-405"></option>
+    <option value="DO-15"></option>
+    <option value="DO-201AD"></option>
+    <option value="DO-201AE"></option>
+    <option value="DO-41"></option>
+    <option value="R-3"></option>
+    <option value="R-6"></option>
+    <option value="RS-4L"></option>
+    <option value="RS-6"></option>
+    <option value="C2"></option>
+    <option value="D1"></option>
+    <option value="D2"></option>
+  </datalist>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
+

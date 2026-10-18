@@ -1,0 +1,56 @@
+{
+  "name": "lab-inventory",
+  "productName": "Lab Inventory",
+  "version": "2.0.0",
+  "description": "Lab Inventory & BOM Analyzer Desktop Application (Electron Edition)",
+  "main": "src/backend/main.js",
+  "author": "Ahmed Aboeita",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win portable dir"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ahmedaboeita.labinventory",
+    "productName": "Lab Inventory",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "assets/Images/**/*"
+    ],
+    "win": {
+      "icon": "assets/Images/Lab_Inventory.ico",
+      "target": [
+        "nsis",
+        "portable",
+        "dir"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lab Inventory",
+      "artifactName": "Lab_Inventory_Setup_${version}.exe"
+    },
+    "portable": {
+      "artifactName": "Lab_Inventory_Portable_${version}.exe"
+    }
+  },
+  "dependencies": {
+    "mysql2": "^3.24.6",
+    "sql.js": "^1.15.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}
