@@ -136,5 +136,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
    */
   onWindowStateChange: (callback) => {
     ipcRenderer.on('window:state-change', (_event, isMax) => callback(isMax));
-  }
+  },
+
+  /**
+   * Registers a new user with encrypted password.
+   */
+  registerUser: (payload) => ipcRenderer.invoke('auth:register', payload),
+
+  /**
+   * Authenticates user credentials.
+   */
+  loginUser: (credentials) => ipcRenderer.invoke('auth:login', credentials),
+
+  /**
+   * Gets currently authenticated session user.
+   */
+  getCurrentUser: () => ipcRenderer.invoke('auth:get-current-user'),
+
+  /**
+   * Logs out current session user.
+   */
+  logoutUser: () => ipcRenderer.invoke('auth:logout'),
+
+  /**
+   * Records an inventory change in the audit log.
+   */
+  logAuditChange: (payload) => ipcRenderer.invoke('audit:log-change', payload),
+
+  /**
+   * Retrieves inventory change history.
+   */
+  getAuditHistory: (filter) => ipcRenderer.invoke('audit:get-history', filter)
 });
+

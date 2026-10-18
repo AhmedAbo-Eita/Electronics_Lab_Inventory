@@ -13,6 +13,8 @@ const path = require('path');
 const sqliteDb = require('./sqliteDatabase');
 const mysqlClient = require('./mysqlClient');
 const spreadsheetHelper = require('./spreadsheetHelper');
+const authService = require('./authService');
+const auditLogger = require('./auditLogger');
 
 /**
  * Registers all application IPC handlers.
@@ -288,7 +290,39 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
   });
 
   // --------------------------------------------------------------------------
-  // 4. Custom Window Title Bar Controls (Spotify / Google Style)
+  // 4. User Authentication & Encrypted Account Management
+  // --------------------------------------------------------------------------
+
+  ipcMain.handle('auth:register', async (_event, payload) => {
+    return authService.registerUser(payload);
+  });
+
+  ipcMain.handle('auth:login', async (_event, credentials) => {
+    return authService.loginUser(credentials);
+  });
+
+  ipcMain.handle('auth:get-current-user', () => {
+    return authService.getCurrentUser();
+  });
+
+  ipcMain.handle('auth:logout', () => {
+    return authService.logoutUser();
+  });
+
+  // --------------------------------------------------------------------------
+  // 5. Inventory Change Audit History
+  // --------------------------------------------------------------------------
+
+  ipcMain.handle('audit:log-change', async (_event, payload) => {
+    return auditLogger.logChange(payload);
+  });
+
+  ipcMain.handle('audit:get-history', async (_event, filter) => {
+    return auditLogger.getHistory(filter);
+  });
+
+  // --------------------------------------------------------------------------
+  // 6. Custom Window Title Bar Controls (Spotify / Google Style)
   // --------------------------------------------------------------------------
 
   ipcMain.handle('window:minimize', () => {

@@ -187,6 +187,30 @@ async function ensureRemoteTable() {
       INDEX \`idx_mpn\` (\`mpn\`),
       INDEX \`idx_type\` (\`component_type\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    CREATE TABLE IF NOT EXISTS \`lab_users\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`username\` VARCHAR(80) NOT NULL UNIQUE,
+      \`email\` VARCHAR(120) NOT NULL UNIQUE,
+      \`password_hash\` VARCHAR(255) NOT NULL,
+      \`last_login\` DATETIME NULL DEFAULT NULL,
+      \`last_failed_login\` DATETIME NULL DEFAULT NULL,
+      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX \`idx_username\` (\`username\`),
+      INDEX \`idx_email\` (\`email\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    CREATE TABLE IF NOT EXISTS \`inventory_audit_log\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`username\` VARCHAR(80) NOT NULL,
+      \`action_type\` VARCHAR(50) NOT NULL,
+      \`mpn\` VARCHAR(120) DEFAULT '',
+      \`change_details\` TEXT NOT NULL,
+      \`changed_at\` DATETIME NOT NULL,
+      INDEX \`idx_changed_at\` (\`changed_at\`),
+      INDEX \`idx_username\` (\`username\`),
+      INDEX \`idx_mpn\` (\`mpn\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `;
   await p.query(createTableSql);
 }

@@ -108,6 +108,30 @@ function ensureSchema(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_inventory_mpn ON lab_inventory(mpn);
     CREATE INDEX IF NOT EXISTS idx_inventory_type ON lab_inventory(component_type);
+
+    CREATE TABLE IF NOT EXISTS lab_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL,
+      last_login DATETIME DEFAULT NULL,
+      last_failed_login DATETIME DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_username ON lab_users(username);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON lab_users(email);
+
+    CREATE TABLE IF NOT EXISTS inventory_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      action_type TEXT NOT NULL,
+      mpn TEXT DEFAULT '',
+      change_details TEXT NOT NULL,
+      changed_at DATETIME NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_changed_at ON inventory_audit_log(changed_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_username ON inventory_audit_log(username);
+    CREATE INDEX IF NOT EXISTS idx_audit_mpn ON inventory_audit_log(mpn);
   `;
   db.run(schemaSql);
 }
@@ -473,6 +497,212 @@ async function exportBomReportToDbFile(targetFilePath, boardName, boardsCount, a
   }
 }
 
+/**
+ * Retrieves a user record by username.
+ */
+async function getUserByUsername(username) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  if (!clean) return null;
+
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, last_login, last_failed_login, created_at FROM lab_users WHERE username = ? COLLATE NOCASE LIMIT 1;');
+  stmt.bind([clean]);
+  let user = null;
+  if (stmt.step()) {
+    const row = stmt.get();
+    user = {
+      id: row[0],
+      username: row[1],
+      email: row[2],
+      passwordHash: row[3],
+      lastLogin: row[4],
+      lastFailedLogin: row[5],
+      createdAt: row[6]
+    };
+  }
+  stmt.free();
+  return user;
+}
+
+/**
+ * Retrieves a user record by email.
+ */
+async function getUserByEmail(email) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean) return null;
+
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, last_login, last_failed_login, created_at FROM lab_users WHERE email = ? COLLATE NOCASE LIMIT 1;');
+  stmt.bind([clean]);
+  let user = null;
+  if (stmt.step()) {
+    const row = stmt.get();
+    user = {
+      id: row[0],
+      username: row[1],
+      email: row[2],
+      passwordHash: row[3],
+      lastLogin: row[4],
+      lastFailedLogin: row[5],
+      createdAt: row[6]
+    };
+  }
+  stmt.free();
+  return user;
+}
+
+/**
+ * Creates a new user record in SQLite.
+ */
+async function createUser({ username, email, passwordHash }) {
+  if (!activeDb) await initSQLiteDatabase();
+  const cleanUser = String(username || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+
+  try {
+    const insertStmt = activeDb.prepare(`
+      INSERT INTO lab_users (username, email, password_hash, created_at)
+      VALUES (?, ?, ?, datetime('now', 'localtime'));
+    `);
+    insertStmt.run([cleanUser, cleanEmail, passwordHash]);
+    insertStmt.free();
+    flushToDisk(activeDb);
+    return { ok: true, user: { username: cleanUser, email: cleanEmail } };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Updates last_login timestamp upon successful login.
+ */
+async function updateUserLoginSuccess(username) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  if (!clean) return;
+
+  activeDb.run(
+    `UPDATE lab_users SET last_login = datetime('now', 'localtime') WHERE username = ? COLLATE NOCASE;`,
+    [clean]
+  );
+  flushToDisk(activeDb);
+}
+
+/**
+ * Updates last_failed_login timestamp upon failed password attempt.
+ */
+async function updateUserLoginFailure(username) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  if (!clean) return;
+
+  activeDb.run(
+    `UPDATE lab_users SET last_failed_login = datetime('now', 'localtime') WHERE username = ? COLLATE NOCASE;`,
+    [clean]
+  );
+  flushToDisk(activeDb);
+}
+
+/**
+ * Inserts a new inventory change audit record.
+ */
+async function insertAuditLog({ username, actionType, mpn = '', changeDetails }) {
+  if (!activeDb) await initSQLiteDatabase();
+  const cleanUser = String(username || 'Anonymous').trim();
+  const cleanType = String(actionType || 'UNKNOWN').trim().toUpperCase();
+  const cleanMpn = String(mpn || '').trim();
+  const cleanDetails = String(changeDetails || '').trim();
+
+  try {
+    const stmt = activeDb.prepare(`
+      INSERT INTO inventory_audit_log (username, action_type, mpn, change_details, changed_at)
+      VALUES (?, ?, ?, ?, datetime('now', 'localtime'));
+    `);
+    stmt.run([cleanUser, cleanType, cleanMpn, cleanDetails]);
+    stmt.free();
+    flushToDisk(activeDb);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Retrieves recent inventory audit records with optional search filter.
+ */
+async function getAuditLogs({ limit = 100, search = '', action = '' } = {}) {
+  if (!activeDb) await initSQLiteDatabase();
+  const maxLimit = Math.min(Math.max(1, parseInt(limit, 10) || 100), 500);
+  const term = String(search || '').trim().toLowerCase();
+  const act = String(action || '').trim().toUpperCase();
+
+  try {
+    let sql = `
+      SELECT id, username, action_type, mpn, change_details, changed_at
+      FROM inventory_audit_log
+    `;
+    const conditions = [];
+    let params = [];
+
+    if (term) {
+      conditions.push(`(LOWER(username) LIKE ? OR LOWER(action_type) LIKE ? OR LOWER(mpn) LIKE ? OR LOWER(change_details) LIKE ?)`);
+      const like = `%${term}%`;
+      params.push(like, like, like, like);
+    }
+
+    if (act) {
+      conditions.push(`UPPER(action_type) = ?`);
+      params.push(act);
+    }
+
+    if (conditions.length > 0) {
+      sql += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    sql += ` ORDER BY id DESC LIMIT ${maxLimit};`;
+
+    let rows = [];
+    if (params.length > 0) {
+      const stmt = activeDb.prepare(sql);
+      stmt.bind(params);
+      while (stmt.step()) {
+        const r = stmt.get();
+        rows.push({
+          id: r[0],
+          username: r[1],
+          actionType: r[2],
+          action_type: r[2],
+          mpn: r[3],
+          changeDetails: r[4],
+          change_details: r[4],
+          changedAt: r[5],
+          changed_at: r[5]
+        });
+      }
+      stmt.free();
+    } else {
+      const res = activeDb.exec(sql);
+      if (res && res.length > 0) {
+        rows = res[0].values.map(r => ({
+          id: r[0],
+          username: r[1],
+          actionType: r[2],
+          action_type: r[2],
+          mpn: r[3],
+          changeDetails: r[4],
+          change_details: r[4],
+          changedAt: r[5],
+          changed_at: r[5]
+        }));
+      }
+    }
+
+    return { ok: true, rows, logs: rows };
+  } catch (err) {
+    return { ok: false, rows: [], logs: [], error: err.message };
+  }
+}
+
 module.exports = {
   getDatabasePaths,
   initSQLiteDatabase,
@@ -481,5 +711,13 @@ module.exports = {
   importFromExternalDbFile,
   exportToExternalDbFile,
   exportTemplateDbFile,
-  exportBomReportToDbFile
+  exportBomReportToDbFile,
+  getUserByUsername,
+  getUserByEmail,
+  createUser,
+  updateUserLoginSuccess,
+  updateUserLoginFailure,
+  insertAuditLog,
+  getAuditLogs
 };
+

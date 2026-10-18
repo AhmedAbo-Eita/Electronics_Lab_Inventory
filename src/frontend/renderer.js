@@ -127,26 +127,61 @@ let isDialogOpen = false;
 
 function getDialogIconSVG(type) {
   switch (type) {
+    case 'save':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>`;
+    case 'clear':
+    case 'delete':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>`;
+    case 'reset':
+    case 'revert':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>`;
+    case 'logout':
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>`;
     case 'error':
-      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
       </svg>`;
     case 'warning':
-      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
       </svg>`;
     case 'question':
-      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
       </svg>`;
     case 'success':
-      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
       </svg>`;
     case 'info':
     default:
-      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+      return `<svg class="dialog-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
       </svg>`;
   }
 }
@@ -172,9 +207,13 @@ function processNextDialog() {
     return;
   }
 
-  const rawType = String(options.type || 'info').toLowerCase();
+  const rawType = String(options.icon || options.type || 'info').toLowerCase();
   let iconType = 'info';
-  if (rawType.includes('err')) iconType = 'error';
+  if (rawType.includes('save') || rawType.includes('sync')) iconType = 'save';
+  else if (rawType.includes('clear') || rawType.includes('delete') || rawType.includes('trash')) iconType = 'clear';
+  else if (rawType.includes('reset') || rawType.includes('revert') || rawType.includes('reload')) iconType = 'reset';
+  else if (rawType.includes('logout') || rawType.includes('signout')) iconType = 'logout';
+  else if (rawType.includes('err')) iconType = 'error';
   else if (rawType.includes('warn')) iconType = 'warning';
   else if (rawType.includes('quest')) iconType = 'question';
   else if (rawType.includes('succ')) iconType = 'success';
@@ -263,6 +302,27 @@ function showAppDialog(options = {}) {
 
 // Alias showMessage to showAppDialog
 const showMessage = showAppDialog;
+window.showAppDialog = showAppDialog;
+
+/**
+ * Records an inventory change in the audit log via the Electron IPC bridge.
+ * Non-blocking, fails gracefully if IPC is not yet loaded.
+ *
+ * @param {string} actionType 'ADD' | 'EDIT' | 'DELETE' | 'IMPORT' | 'CLEAR_ALL' | 'BOM_DEDUCT' | 'REVERT' | 'SAVE'
+ * @param {string} mpn Component MPN or target descriptor
+ * @param {string} changeDetails Human-readable description of change
+ */
+function logAuditRecord(actionType, mpn, changeDetails) {
+  if (window.electronAPI && typeof window.electronAPI.logAuditChange === 'function') {
+    window.electronAPI.logAuditChange({
+      actionType,
+      mpn,
+      changeDetails
+    }).catch((err) => {
+      console.warn('Audit log write notice:', err.message);
+    });
+  }
+}
 
 // ============================================================================
 // String Normalization & Data Model Helpers
@@ -578,6 +638,12 @@ function startInlineCellEdit(td, canonicalMPN, colIndex, initialText) {
     renderInventoryTable();
     refreshBomAnalysis();
     showToast(`Updated ${comp.mpn}`);
+
+    if (String(initialText).trim() !== String(newVal).trim()) {
+      const colNames = ['', 'Quantity', 'Type', 'Value', 'Footprint', 'Location', 'Customer Code'];
+      const fieldName = colNames[colIndex] || 'Field';
+      logAuditRecord('EDIT', comp.mpn, `Inline edited ${fieldName}: '${initialText}' → '${newVal}'`);
+    }
   };
 
   input.addEventListener('blur', commit, { once: true });
@@ -968,6 +1034,11 @@ async function onAddPushButtonClicked() {
     componentList.push(
       createComponent(userMPN, userQuantity, userType, userValue, userFootprint, userLocation, userCustomerCode)
     );
+    logAuditRecord(
+      'ADD',
+      userMPN,
+      `Added new part: Qty ${userQuantity}, Loc: '${userLocation}', Type: '${userType || 'N/A'}', Val: '${userValue || 'N/A'}'`
+    );
     renderInventoryTable();
     refreshBomAnalysis();
     clearAddComponentForm();
@@ -985,7 +1056,9 @@ async function onAddPushButtonClicked() {
     });
 
     if (response === 0 && userQuantity > 0) {
+      const prevQty = componentList[existingIdx].quantity;
       componentList[existingIdx].quantity += userQuantity;
+      logAuditRecord('EDIT', userMPN, `Incremented stock: ${prevQty} → ${componentList[existingIdx].quantity} (+${userQuantity})`);
       renderInventoryTable();
       refreshBomAnalysis();
       clearAddComponentForm();
@@ -996,15 +1069,17 @@ async function onAddPushButtonClicked() {
 
 async function onCleanPushButtonClicked() {
   const { response } = await showAppDialog({
-    type: 'warning',
-    buttons: ['OK', 'Cancel'],
+    type: 'clear',
+    icon: 'clear',
+    buttons: ['Clear All Data', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
     title: 'Clear All Inventory Data',
-    message: 'Are you sure you want to permanently clear all components from the inventory table?'
+    message: 'Are you sure you want to permanently clear all components from the inventory table? This action cannot be undone.'
   });
 
   if (response === 0) {
+    const clearedCount = componentList.length;
     componentList = [];
     resetEditTabState();
     renderInventoryTable();
@@ -1013,13 +1088,14 @@ async function onCleanPushButtonClicked() {
     const res = await window.electronAPI.saveDB(componentList);
     if (!res.ok) {
       await showAppDialog({
-        type: 'warning',
+        type: 'error',
         title: 'Clear Sync Failed',
         message: res.error
       });
     } else {
       componentListOldSave = cloneComponentList(componentList);
       updateDashboardMetrics();
+      logAuditRecord('CLEAR_ALL', 'ALL', `Cleared all inventory records (${clearedCount} parts)`);
       showToast('Cleared all inventory items');
     }
   }
@@ -1027,19 +1103,20 @@ async function onCleanPushButtonClicked() {
 
 async function onResetPushButtonClicked() {
   const { response } = await showAppDialog({
-    type: 'question',
-    buttons: ['OK', 'Cancel'],
+    type: 'reset',
+    icon: 'reset',
+    buttons: ['Discard Changes', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
     title: 'Reset to Last Save',
-    message: 'Do you want to discard unsaved changes and reload the last saved inventory?'
+    message: 'Do you want to discard unsaved changes and reload the last saved database state?'
   });
 
   if (response === 0) {
     const dbRes = await window.electronAPI.initAndLoadDB();
     if (!dbRes.ok) {
       await showAppDialog({
-        type: 'warning',
+        type: 'error',
         title: 'Reset Failed',
         message: 'Could not load database: ' + dbRes.error
       });
@@ -1053,14 +1130,16 @@ async function onResetPushButtonClicked() {
     resetEditTabState();
     renderInventoryTable();
     refreshBomAnalysis();
+    logAuditRecord('REVERT', 'ALL', `Reverted unsaved changes to last saved state (${componentList.length} components)`);
     showToast('Reverted to last saved database state');
   }
 }
 
 async function onSavePushButtonClicked() {
   const { response } = await showAppDialog({
-    type: 'question',
-    buttons: ['OK', 'Cancel'],
+    type: 'save',
+    icon: 'save',
+    buttons: ['Save Database', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
     title: 'Save Inventory Table',
@@ -1072,11 +1151,12 @@ async function onSavePushButtonClicked() {
     if (res.ok) {
       componentListOldSave = cloneComponentList(componentList);
       updateDashboardMetrics();
+      logAuditRecord('SAVE', 'DATABASE', `Saved ${componentList.length} components to local database`);
       showToast('Database saved successfully');
       syncDatabaseQuietly();
     } else {
       await showAppDialog({
-        type: 'warning',
+        type: 'error',
         title: 'Save Failed',
         message: res.error
       });
@@ -1150,6 +1230,11 @@ async function onImportPushButtonClicked() {
   } else {
     componentListOldSave = cloneComponentList(componentList);
     updateDashboardMetrics();
+    logAuditRecord(
+      'IMPORT',
+      'BATCH',
+      `Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged) & saved to DB`
+    );
     showToast(`Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged) & saved to DB`);
     syncDatabaseQuietly();
   }
@@ -1275,12 +1360,26 @@ function onApplyEditspushButtonClicked() {
   if (targetIdx === -1) return;
 
   const comp = componentList[targetIdx];
+  const oldComp = { ...comp };
+
   comp.location = document.getElementById('editLocatioLineEdit').value.trim();
   comp.footprint = document.getElementById('editFootprintLineEdit').value.trim();
   comp.quantity = Math.max(0, parseInt(document.getElementById('editQuantitySpinBox').value, 10) || 0);
   comp.type = document.getElementById('editTypeComboBox').value.trim();
   comp.value = document.getElementById('editValueLineEdit').value.trim();
   comp.customerCode = document.getElementById('editCustomerCodeLineEdit').value.trim();
+
+  // Compute diff summary for audit history
+  const diffParts = [];
+  if (oldComp.quantity !== comp.quantity) diffParts.push(`Qty: ${oldComp.quantity} → ${comp.quantity}`);
+  if (oldComp.location !== comp.location) diffParts.push(`Loc: '${oldComp.location || 'N/A'}' → '${comp.location || 'N/A'}'`);
+  if (oldComp.value !== comp.value) diffParts.push(`Val: '${oldComp.value || 'N/A'}' → '${comp.value || 'N/A'}'`);
+  if (oldComp.footprint !== comp.footprint) diffParts.push(`FP: '${oldComp.footprint || 'N/A'}' → '${comp.footprint || 'N/A'}'`);
+  if (oldComp.type !== comp.type) diffParts.push(`Type: '${oldComp.type || 'N/A'}' → '${comp.type || 'N/A'}'`);
+  if (oldComp.customerCode !== comp.customerCode) diffParts.push(`Code: '${oldComp.customerCode || 'N/A'}' → '${comp.customerCode || 'N/A'}'`);
+
+  const changeSummary = diffParts.length > 0 ? diffParts.join(' | ') : 'Updated component fields';
+  logAuditRecord('EDIT', comp.mpn, changeSummary);
 
   renderInventoryTable();
   refreshBomAnalysis();
@@ -1297,8 +1396,9 @@ async function onDeleteComponentpushButtonClicked() {
 
   const targetMPN = componentList[targetIdx].mpn;
   const { response } = await showAppDialog({
-    type: 'question',
-    buttons: ['OK', 'Cancel'],
+    type: 'delete',
+    icon: 'delete',
+    buttons: ['Delete Component', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
     title: 'Delete Component',
@@ -1306,7 +1406,10 @@ async function onDeleteComponentpushButtonClicked() {
   });
 
   if (response === 0) {
+    const deletedPart = componentList[targetIdx];
+    const details = `Deleted part (was Qty: ${deletedPart.quantity}, Loc: '${deletedPart.location || 'N/A'}')`;
     componentList.splice(targetIdx, 1);
+    logAuditRecord('DELETE', targetMPN, details);
     renderInventoryTable();
     refreshBomAnalysis();
     resetEditTabState();
@@ -1462,6 +1565,11 @@ async function onDeductBomStockClicked() {
 
   renderInventoryTable();
   refreshBomAnalysis();
+  logAuditRecord(
+    'BOM_DEDUCT',
+    boardName,
+    `Deducted ${totalUnitsDeducted} units across ${deductedParts} parts for build of ${boardsCount}x '${boardName}'`
+  );
   showToast(`Deducted ${totalUnitsDeducted} units across ${deductedParts} parts`);
 }
 
@@ -1913,7 +2021,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     winCloseBtn.addEventListener('click', async () => {
       if (!areComponentListsEqual(componentListOldSave, componentList)) {
         const { response } = await showAppDialog({
-          type: 'question',
+          type: 'save',
+          icon: 'save',
           buttons: ['Save & Close', "Don't Save", 'Cancel'],
           defaultId: 0,
           cancelId: 2,
@@ -2103,7 +2212,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (window.electronAPI && window.electronAPI.onPromptCloseSave) {
     window.electronAPI.onPromptCloseSave(async () => {
       const { response } = await showAppDialog({
-        type: 'question',
+        type: 'save',
+        icon: 'save',
         buttons: ['Save & Close', "Don't Save", 'Cancel'],
         defaultId: 0,
         cancelId: 2,
