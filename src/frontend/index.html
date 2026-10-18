@@ -727,22 +727,42 @@
             <p class="settings-section-desc">Choose your color scheme or automatically follow your Windows system setting.</p>
           </div>
 
-          <!-- Modern Segmented Pill Theme Selector (App Standard Style) -->
-          <div class="settings-segmented-pills" role="radiogroup" aria-label="Theme preference">
-            <label class="settings-pill-option" for="themeRadioSystem" id="themeCardSystem">
+          <!-- Material 3 Selection Tiles (Equal-width, No Wrapping, Clean Radio Indicators) -->
+          <div class="theme-tiles-grid" role="radiogroup" aria-label="Theme preference">
+            <!-- Option 1: System Default -->
+            <label class="theme-tile-card" for="themeRadioSystem" id="themeCardSystem">
               <input type="radio" name="themePreference" id="themeRadioSystem" value="system" />
-              <span class="settings-pill-label">
-                <span>System Default</span>
-                <span class="theme-card-badge" id="themeSystemBadge">Auto</span>
-              </span>
+              <div class="theme-tile-body">
+                <span class="theme-tile-radio"></span>
+                <div class="theme-tile-info">
+                  <span class="theme-tile-title">System Default</span>
+                  <span class="theme-tile-subtitle" id="themeSystemBadge">Windows: Dark</span>
+                </div>
+              </div>
             </label>
-            <label class="settings-pill-option" for="themeRadioDark" id="themeCardDark">
+
+            <!-- Option 2: Dark Mode -->
+            <label class="theme-tile-card" for="themeRadioDark" id="themeCardDark">
               <input type="radio" name="themePreference" id="themeRadioDark" value="dark" />
-              <span class="settings-pill-label">Dark Mode</span>
+              <div class="theme-tile-body">
+                <span class="theme-tile-radio"></span>
+                <div class="theme-tile-info">
+                  <span class="theme-tile-title">Dark Mode</span>
+                  <span class="theme-tile-subtitle">Always dark</span>
+                </div>
+              </div>
             </label>
-            <label class="settings-pill-option" for="themeRadioLight" id="themeCardLight">
+
+            <!-- Option 3: Light Mode -->
+            <label class="theme-tile-card" for="themeRadioLight" id="themeCardLight">
               <input type="radio" name="themePreference" id="themeRadioLight" value="light" />
-              <span class="settings-pill-label">Light Mode</span>
+              <div class="theme-tile-body">
+                <span class="theme-tile-radio"></span>
+                <div class="theme-tile-info">
+                  <span class="theme-tile-title">Light Mode</span>
+                  <span class="theme-tile-subtitle">Always light</span>
+                </div>
+              </div>
             </label>
           </div>
         </div>

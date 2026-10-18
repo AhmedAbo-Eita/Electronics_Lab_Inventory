@@ -2157,20 +2157,16 @@ body.light-theme .modal-overlay {
   margin: 6px 0;
 }
 
-/* Material 3 Segmented Pill Theme Control (Matches .auth-mode-pills style) */
-.settings-segmented-pills {
+/* Theme Choice 3-Tile Grid (Modern Material 3 Radio Cards) */
+.theme-tiles-grid {
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   width: 100%;
-  background-color: var(--bg-container-low);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  padding: 4px;
-  gap: 4px;
   margin-top: 2px;
 }
 
-.settings-pill-option {
+.theme-tile-card {
   position: relative;
   display: block;
   cursor: pointer;
@@ -2178,7 +2174,7 @@ body.light-theme .modal-overlay {
   margin: 0;
 }
 
-.settings-pill-option input[type="radio"] {
+.theme-tile-card input[type="radio"] {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -2186,69 +2182,108 @@ body.light-theme .modal-overlay {
   pointer-events: none;
 }
 
-.settings-pill-label {
+.theme-tile-body {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 11px;
+  padding: 11px 13px;
+  background-color: var(--bg-container-low);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  transition: border-color 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard), transform 0.18s var(--ease-spring), box-shadow 0.2s var(--ease-standard);
+  min-height: 48px;
+}
+
+.theme-tile-card:hover .theme-tile-body {
+  background-color: var(--bg-container-high);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.theme-tile-card input[type="radio"]:checked + .theme-tile-body {
+  background-color: var(--bg-container-highest);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .theme-tile-card input[type="radio"]:checked + .theme-tile-body {
+  background-color: rgba(168, 199, 250, 0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+body.light-theme .theme-tile-card input[type="radio"]:checked + .theme-tile-body {
+  background-color: #E8F0FE;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 2px 8px rgba(26, 115, 232, 0.15);
+}
+
+.theme-tile-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
   background: transparent;
-  color: var(--text-secondary);
-  border-radius: 999px;
-  padding: 8px 14px;
+  flex-shrink: 0;
+  transition: all 0.2s var(--ease-standard);
+  position: relative;
+}
+
+.theme-tile-card:hover .theme-tile-radio {
+  border-color: var(--primary);
+}
+
+.theme-tile-card input[type="radio"]:checked + .theme-tile-body .theme-tile-radio {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.theme-tile-card input[type="radio"]:checked + .theme-tile-body .theme-tile-radio::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--on-primary);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.theme-tile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.theme-tile-title {
   font-size: 13px;
   font-weight: 600;
-  min-height: 36px;
-  cursor: pointer;
-  transition: all 0.2s var(--ease-standard);
-  text-align: center;
-}
-
-.settings-pill-option:hover .settings-pill-label {
   color: var(--text-primary);
-  background-color: var(--bg-container-highest);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
-.settings-pill-option input[type="radio"]:checked + .settings-pill-label {
-  background-color: var(--primary);
-  color: var(--on-primary);
+.theme-tile-card input[type="radio"]:checked + .theme-tile-body .theme-tile-title {
+  color: var(--primary);
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-body.dark-theme .settings-pill-option input[type="radio"]:checked + .settings-pill-label {
-  background-color: var(--primary);
-  color: var(--on-primary);
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+.theme-tile-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
-body.light-theme .settings-pill-option input[type="radio"]:checked + .settings-pill-label {
-  background-color: var(--primary);
-  color: var(--on-primary);
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(11, 87, 208, 0.25);
-}
-
-.theme-card-badge {
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 1.5px 6px;
-  border-radius: 999px;
-  background-color: var(--bg-container-highest);
+.theme-tile-card input[type="radio"]:checked + .theme-tile-body .theme-tile-subtitle {
   color: var(--text-secondary);
-  transition: all 0.2s ease;
-}
-
-.settings-pill-option input[type="radio"]:checked + .settings-pill-label .theme-card-badge {
-  background-color: rgba(0, 0, 0, 0.16);
-  color: inherit;
-}
-
-body.dark-theme .settings-pill-option input[type="radio"]:checked + .settings-pill-label .theme-card-badge {
-  background-color: rgba(6, 46, 111, 0.22);
-  color: #062E6F;
 }
 
 /* ============================================================================
