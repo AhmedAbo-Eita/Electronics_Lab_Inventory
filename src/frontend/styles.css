@@ -4214,26 +4214,44 @@ body.light-theme .simple-tab-btn.active {
   padding-right: 44px !important;
 }
 
+.simple-pass-toggle-btn,
+button.simple-pass-toggle-btn,
+button.simple-pass-toggle-btn:hover,
+button.simple-pass-toggle-btn:hover:not(:disabled),
+button.simple-pass-toggle-btn:active,
+button.simple-pass-toggle-btn:active:not(:disabled),
+button.simple-pass-toggle-btn:focus,
+button.simple-pass-toggle-btn:focus-visible {
+  transform: none !important;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease !important;
+}
+
+button.simple-pass-toggle-btn::after {
+  display: none !important;
+  content: none !important;
+}
+
 .simple-pass-toggle-btn {
   position: absolute;
   right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
   width: 26px;
   height: 26px;
+  min-height: 0 !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 0 !important;
   background: transparent;
   border: none;
   border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   user-select: none;
-  transition:
-    background-color 0.15s var(--ease-standard),
-    color 0.15s var(--ease-standard);
 }
 
 .simple-pass-toggle-btn:hover {
@@ -4259,6 +4277,8 @@ body.light-theme .simple-tab-btn.active {
   stroke-width: 1.75;
   display: block;
   pointer-events: none;
+  transform: none !important;
+  transition: none !important;
 }
 
 /* Formal Feedback Boxes with Slide Animation */
