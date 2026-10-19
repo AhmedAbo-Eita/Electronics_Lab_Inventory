@@ -372,11 +372,16 @@
       if (window.electronAPI && window.electronAPI.logoutUser) {
         await window.electronAPI.logoutUser();
       }
+      if (window.electronAPI && window.electronAPI.saveAppSettings) {
+        await window.electronAPI.saveAppSettings({ autoLogin: false, autoLoginUsername: '' });
+      }
     } catch (err) {
       console.warn('Logout notice:', err.message);
     }
 
     setSessionUser(null);
+    const autoLoginToggle = document.getElementById('autoLoginToggle');
+    if (autoLoginToggle) autoLoginToggle.checked = false;
     if (dom.loginPassword) dom.loginPassword.value = '';
   }
 

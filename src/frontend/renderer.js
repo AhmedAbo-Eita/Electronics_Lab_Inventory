@@ -1909,16 +1909,15 @@ function setupPasswordToggle(btnId, inputId) {
     e.preventDefault();
     const isPass = input.type === 'password';
     input.type = isPass ? 'text' : 'password';
-    btn.innerHTML = isPass
-      ? `<svg class="eye-closed" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
-      : `<svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    btn.textContent = isPass ? 'Hide' : 'Show';
   });
 }
 
 /**
  * Handles Account Tab: Change Email Submission
  */
-async function onChangeEmailSubmit() {
+async function onChangeEmailSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
   const emailInput = document.getElementById('changeEmailInput');
   const passInput = document.getElementById('changeEmailPasswordInput');
   const fb = document.getElementById('changeEmailFeedback');
@@ -1933,7 +1932,7 @@ async function onChangeEmailSubmit() {
   }
   if (!user) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'Please sign into your account first to change email.';
     }
     return;
@@ -1941,7 +1940,7 @@ async function onChangeEmailSubmit() {
 
   if (!newEmail || !newEmail.includes('@')) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'Please enter a valid email address.';
     }
     if (emailInput) emailInput.focus();
@@ -1950,7 +1949,7 @@ async function onChangeEmailSubmit() {
 
   if (!currentPassword) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'Please enter your current password to confirm.';
     }
     if (passInput) passInput.focus();
@@ -1961,6 +1960,7 @@ async function onChangeEmailSubmit() {
     btn.disabled = true;
     const t = btn.querySelector('.btn-text');
     if (t) t.textContent = 'Updating...';
+    else btn.textContent = 'Updating...';
   }
 
   try {
@@ -1972,7 +1972,7 @@ async function onChangeEmailSubmit() {
 
     if (res.ok) {
       if (fb) {
-        fb.className = 'settings-feedback-box feedback-success';
+        fb.className = 'simple-feedback-box feedback-success';
         fb.textContent = `✓ Email address updated successfully to ${res.email}!`;
       }
       if (emailInput) emailInput.value = '';
@@ -1982,13 +1982,13 @@ async function onChangeEmailSubmit() {
       showToast('Email address updated successfully');
     } else {
       if (fb) {
-        fb.className = 'settings-feedback-box feedback-error';
+        fb.className = 'simple-feedback-box feedback-error';
         fb.textContent = `✗ ${res.error || 'Failed to update email address.'}`;
       }
     }
   } catch (err) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = `✗ Error: ${err.message}`;
     }
   } finally {
@@ -1996,6 +1996,7 @@ async function onChangeEmailSubmit() {
       btn.disabled = false;
       const t = btn.querySelector('.btn-text');
       if (t) t.textContent = 'Update Email';
+      else btn.textContent = 'Update Email';
     }
   }
 }
@@ -2003,7 +2004,8 @@ async function onChangeEmailSubmit() {
 /**
  * Handles Account Tab: Change Password Submission
  */
-async function onChangePasswordSubmit() {
+async function onChangePasswordSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
   const currentPassInput = document.getElementById('changePassCurrentInput');
   const newPassInput = document.getElementById('changePassNewInput');
   const confirmPassInput = document.getElementById('changePassConfirmInput');
@@ -2020,7 +2022,7 @@ async function onChangePasswordSubmit() {
   }
   if (!user) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'Please sign into your account first to change password.';
     }
     return;
@@ -2028,7 +2030,7 @@ async function onChangePasswordSubmit() {
 
   if (!currentPassword) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'Please enter your current password.';
     }
     if (currentPassInput) currentPassInput.focus();
@@ -2037,7 +2039,7 @@ async function onChangePasswordSubmit() {
 
   if (!newPassword || newPassword.length < 4) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'New password must be at least 4 characters long.';
     }
     if (newPassInput) newPassInput.focus();
@@ -2046,7 +2048,7 @@ async function onChangePasswordSubmit() {
 
   if (newPassword !== confirmPassword) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = 'New passwords do not match. Please re-type.';
     }
     if (confirmPassInput) confirmPassInput.focus();
@@ -2057,6 +2059,7 @@ async function onChangePasswordSubmit() {
     btn.disabled = true;
     const t = btn.querySelector('.btn-text');
     if (t) t.textContent = 'Updating...';
+    else btn.textContent = 'Updating...';
   }
 
   try {
@@ -2068,7 +2071,7 @@ async function onChangePasswordSubmit() {
 
     if (res.ok) {
       if (fb) {
-        fb.className = 'settings-feedback-box feedback-success';
+        fb.className = 'simple-feedback-box feedback-success';
         fb.textContent = '✓ Password changed successfully! Encrypted in database.';
       }
       if (currentPassInput) currentPassInput.value = '';
@@ -2077,20 +2080,21 @@ async function onChangePasswordSubmit() {
       showToast('Password updated successfully');
     } else {
       if (fb) {
-        fb.className = 'settings-feedback-box feedback-error';
+        fb.className = 'simple-feedback-box feedback-error';
         fb.textContent = `✗ ${res.error || 'Failed to update password.'}`;
       }
     }
   } catch (err) {
     if (fb) {
-      fb.className = 'settings-feedback-box feedback-error';
+      fb.className = 'simple-feedback-box feedback-error';
       fb.textContent = `✗ Error: ${err.message}`;
     }
   } finally {
     if (btn) {
       btn.disabled = false;
       const t = btn.querySelector('.btn-text');
-      if (t) t.textContent = 'Update Password';
+      if (t) t.textContent = 'Change Password';
+      else btn.textContent = 'Change Password';
     }
   }
 }
@@ -2744,9 +2748,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (changeEmailForm) {
     changeEmailForm.addEventListener('submit', onChangeEmailSubmit);
   }
+  const changeEmailSubmitBtn = document.getElementById('changeEmailSubmitBtn');
+  if (changeEmailSubmitBtn) {
+    changeEmailSubmitBtn.addEventListener('click', onChangeEmailSubmit);
+  }
   const changePasswordForm = document.getElementById('settingsChangePasswordForm');
   if (changePasswordForm) {
     changePasswordForm.addEventListener('submit', onChangePasswordSubmit);
+  }
+  const changePassSubmitBtn = document.getElementById('changePassSubmitBtn');
+  if (changePassSubmitBtn) {
+    changePassSubmitBtn.addEventListener('click', onChangePasswordSubmit);
   }
   const settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
   if (settingsSignOutBtn) {

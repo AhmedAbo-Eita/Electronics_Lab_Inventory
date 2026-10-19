@@ -100,13 +100,13 @@ async function checkForUpdates(options = {}) {
       ok: true,
       hasUpdate: true,
       currentVersion,
-      latestVersion: '2.1.0',
-      releaseName: 'Lab Inventory v2.1.0 (Demo Release)',
-      releaseNotes: '### What\'s New in v2.1.0\n- Redesigned Application Settings with multi-tab navigation\n- Built-in GitHub release auto-updater\n- Improved Windows startup & session management\n- Real-time animated connection testing and audit logs',
+      latestVersion: '2.1.2',
+      releaseName: 'Lab Inventory v2.1.2 (Demo Release)',
+      releaseNotes: '### What\'s New in v2.1.2\n- Simple, clean settings interface without decorative icon clutter\n- Strict database password verification on credential updates\n- Secure session logout with automatic sign-in reset\n- Built-in GitHub release auto-updater and background sync',
       publishedAt: nowIso,
       htmlUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`,
-      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.0/Lab_Inventory_Setup_2.1.0.exe`,
-      assetName: 'Lab_Inventory_Setup_2.1.0.exe',
+      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.2/Lab_Inventory_Setup_2.1.2.exe`,
+      assetName: 'Lab_Inventory_Setup_2.1.2.exe',
       assetSize: '65.4 MB',
       isSimulated: true
     };

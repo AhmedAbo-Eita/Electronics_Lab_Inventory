@@ -706,304 +706,184 @@
     </footer>
   </div>
 
-  <!-- Modern Multi-Tab Application Settings Modal -->
+  <!-- Clean & Simple Multi-Tab Application Settings Modal (No AI Shapes, No Clutter) -->
   <div id="dbSettingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dbModalTitle">
-    <div class="modal-card settings-modal-card">
+    <div class="modal-card simple-settings-modal">
       <!-- Modal Header -->
-      <div class="modal-header settings-modal-header">
-        <div class="modal-title-group">
-          <div class="modal-header-icon-badge">
-            <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </div>
-          <div>
-            <h2 id="dbModalTitle" class="modal-title">Application Settings</h2>
-            <p class="modal-subtitle">Manage user account security, system preferences, database sync, and software updates.</p>
-          </div>
+      <div class="modal-header simple-settings-header">
+        <div>
+          <h2 id="dbModalTitle" class="modal-title">Settings</h2>
+          <p class="modal-subtitle">Manage account, preferences, database, and application updates.</p>
         </div>
-        <button id="dbModalCloseBtn" class="modal-close-btn ripple-btn" type="button" aria-label="Close modal">&times;</button>
+        <button id="dbModalCloseBtn" class="modal-close-btn" type="button" aria-label="Close settings">&times;</button>
       </div>
 
-      <!-- Settings Split Layout: Left Navigation + Right Content -->
-      <div class="settings-modal-layout">
-        <!-- Navigation Sidebar Tabs -->
-        <nav class="settings-nav-sidebar" role="tablist" aria-label="Settings categories">
-          <!-- Tab 1: Account -->
-          <button type="button" class="settings-tab-btn active" role="tab" id="settingsTabBtnAccount" aria-selected="true" aria-controls="settingsPanelAccount" data-tab="account">
-            <svg class="settings-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <div class="settings-tab-text">
-              <span class="settings-tab-title">User Account</span>
-              <span class="settings-tab-subtitle">Profile &amp; Credentials</span>
-            </div>
+      <!-- Settings Layout: Clean Vertical Tab Bar + Content Area -->
+      <div class="simple-settings-layout">
+        <!-- Text-Only Tab Navigation -->
+        <nav class="simple-settings-nav" role="tablist" aria-label="Settings categories">
+          <button type="button" class="simple-tab-btn active" role="tab" id="settingsTabBtnAccount" aria-selected="true" aria-controls="settingsPanelAccount" data-tab="account">
+            Account
           </button>
-
-          <!-- Tab 2: Preferences -->
-          <button type="button" class="settings-tab-btn" role="tab" id="settingsTabBtnPreferences" aria-selected="false" aria-controls="settingsPanelPreferences" data-tab="preferences">
-            <svg class="settings-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            <div class="settings-tab-text">
-              <span class="settings-tab-title">App Preferences</span>
-              <span class="settings-tab-subtitle">Theme, Startup &amp; Login</span>
-            </div>
+          <button type="button" class="simple-tab-btn" role="tab" id="settingsTabBtnPreferences" aria-selected="false" aria-controls="settingsPanelPreferences" data-tab="preferences">
+            Application
           </button>
-
-          <!-- Tab 3: Database -->
-          <button type="button" class="settings-tab-btn" role="tab" id="settingsTabBtnDatabase" aria-selected="false" aria-controls="settingsPanelDatabase" data-tab="database">
-            <svg class="settings-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <div class="settings-tab-text">
-              <span class="settings-tab-title">Database &amp; Sync</span>
-              <span class="settings-tab-subtitle">Local SQLite &amp; MySQL</span>
-            </div>
+          <button type="button" class="simple-tab-btn" role="tab" id="settingsTabBtnDatabase" aria-selected="false" aria-controls="settingsPanelDatabase" data-tab="database">
+            Database
           </button>
-
-          <!-- Tab 4: About & Updates -->
-          <button type="button" class="settings-tab-btn" role="tab" id="settingsTabBtnAbout" aria-selected="false" aria-controls="settingsPanelAbout" data-tab="about">
-            <svg class="settings-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <div class="settings-tab-text">
-              <span class="settings-tab-title">About &amp; Updates</span>
-              <span class="settings-tab-subtitle">v2.1.0 • Repo Releases</span>
-            </div>
+          <button type="button" class="simple-tab-btn" role="tab" id="settingsTabBtnAbout" aria-selected="false" aria-controls="settingsPanelAbout" data-tab="about">
+            About &amp; Updates
           </button>
         </nav>
 
-        <!-- Right Content Area (Panels) -->
-        <div class="settings-content-area">
+        <!-- Content Area -->
+        <div class="simple-settings-content">
           <!-- ============================================================ -->
-          <!-- PANEL 1: USER ACCOUNT & SECURITY                             -->
+          <!-- TAB 1: USER ACCOUNT & SECURITY                               -->
           <!-- ============================================================ -->
-          <div id="settingsPanelAccount" class="settings-tab-panel active" role="tabpanel" aria-labelledby="settingsTabBtnAccount">
-            <!-- Active Profile Card -->
-            <div class="settings-card">
-              <div class="account-profile-header">
-                <div class="account-avatar-circle" id="settingsAvatarCircle">
-                  <span id="settingsAvatarInitials">U</span>
-                </div>
-                <div class="account-profile-info">
-                  <div class="account-name-row">
-                    <h3 class="account-name" id="settingsAccountUsername">Authenticated User</h3>
-                    <span class="account-status-badge badge-active" id="settingsAccountStatusBadge">Active Session</span>
+          <div id="settingsPanelAccount" class="simple-tab-panel active" role="tabpanel" aria-labelledby="settingsTabBtnAccount">
+            <!-- Account Information -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Account Profile</h3>
+              <div class="simple-account-box">
+                <div class="simple-account-details">
+                  <div class="simple-info-row">
+                    <span class="simple-info-label">Username:</span>
+                    <strong id="settingsAccountUsername" class="simple-info-val">User</strong>
                   </div>
-                  <p class="account-email" id="settingsAccountEmail">user@example.com</p>
-                  <span class="account-last-login" id="settingsAccountLastLogin">Last login: Recently</span>
+                  <div class="simple-info-row">
+                    <span class="simple-info-label">Email:</span>
+                    <span id="settingsAccountEmail" class="simple-info-val">user@example.com</span>
+                  </div>
+                  <div class="simple-info-row">
+                    <span class="simple-info-label">Status:</span>
+                    <span id="settingsAccountStatusBadge" class="simple-badge-active">Active Session</span>
+                  </div>
+                  <div class="simple-info-row">
+                    <span class="simple-info-label">Session:</span>
+                    <span id="settingsAccountLastLogin" class="simple-info-muted">Current session</span>
+                  </div>
                 </div>
-                <div class="account-profile-actions">
-                  <button type="button" id="settingsOpenAuditBtn" class="btn-tonal ripple-btn btn-sm" title="View activity audit log">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>Audit Log</span>
-                  </button>
-                  <button type="button" id="settingsSignOutBtn" class="btn-tonal-danger ripple-btn btn-sm" title="Sign out of account">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                      <polyline points="16 17 21 12 16 7"></polyline>
-                      <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
+                <div class="simple-account-buttons">
+                  <button type="button" id="settingsOpenAuditBtn" class="btn-outlined btn-sm">Audit Log</button>
+                  <button type="button" id="settingsSignOutBtn" class="btn-tonal-danger btn-sm">Sign Out</button>
                 </div>
               </div>
             </div>
 
-            <!-- Change Email Card -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Change Email Address</h4>
-                  <p class="settings-card-desc">Update your registered email address. Requires your current password for security.</p>
-                </div>
-              </div>
-              <form id="settingsChangeEmailForm" class="settings-form" onsubmit="return false;">
-                <div class="settings-form-row">
+            <!-- Change Email Address -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Change Email</h3>
+              <p class="simple-section-desc">Enter your new email address and confirm with your current password.</p>
+              <form id="settingsChangeEmailForm" class="simple-form">
+                <div class="simple-form-row">
                   <div class="field-group">
                     <label for="changeEmailInput">New Email Address</label>
-                    <input type="email" id="changeEmailInput" placeholder="new.email@example.com" autocomplete="email" required />
+                    <input type="email" id="changeEmailInput" placeholder="name@domain.com" autocomplete="email" required />
                   </div>
                   <div class="field-group">
                     <label for="changeEmailPasswordInput">Current Password</label>
-                    <div class="password-input-group">
-                      <input type="password" id="changeEmailPasswordInput" placeholder="••••••••" autocomplete="current-password" required />
-                      <button type="button" class="password-toggle-btn" id="toggleChangeEmailPassBtn" title="Toggle password visibility">
-                        <svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      </button>
+                    <div class="simple-pass-input-wrapper">
+                      <input type="password" id="changeEmailPasswordInput" placeholder="Current password" autocomplete="current-password" required />
+                      <button type="button" class="simple-pass-toggle-btn" id="toggleChangeEmailPassBtn">Show</button>
                     </div>
                   </div>
                 </div>
-                <div id="changeEmailFeedback" class="settings-feedback-box hidden"></div>
-                <div class="settings-card-footer">
-                  <button type="submit" id="changeEmailSubmitBtn" class="btn-filled-primary ripple-btn">
-                    <span class="btn-text">Update Email</span>
-                  </button>
+                <div id="changeEmailFeedback" class="simple-feedback-box hidden"></div>
+                <div class="simple-form-actions">
+                  <button type="button" id="changeEmailSubmitBtn" class="btn-filled-primary">Update Email</button>
                 </div>
               </form>
             </div>
 
-            <!-- Change Password Card -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Change Account Password</h4>
-                  <p class="settings-card-desc">Passwords are encrypted locally using secure scrypt cryptographic hashing.</p>
-                </div>
-              </div>
-              <form id="settingsChangePasswordForm" class="settings-form" onsubmit="return false;">
+            <!-- Change Password -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Change Password</h3>
+              <p class="simple-section-desc">Verify your current password against the database before setting a new password.</p>
+              <form id="settingsChangePasswordForm" class="simple-form">
                 <div class="field-group">
                   <label for="changePassCurrentInput">Current Password</label>
-                  <div class="password-input-group">
+                  <div class="simple-pass-input-wrapper">
                     <input type="password" id="changePassCurrentInput" placeholder="Enter current password" autocomplete="current-password" required />
-                    <button type="button" class="password-toggle-btn" id="togglePassCurrentBtn" title="Toggle password visibility">
-                      <svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
+                    <button type="button" class="simple-pass-toggle-btn" id="togglePassCurrentBtn">Show</button>
                   </div>
                 </div>
-                <div class="settings-form-row">
+                <div class="simple-form-row">
                   <div class="field-group">
                     <label for="changePassNewInput">New Password</label>
-                    <div class="password-input-group">
-                      <input type="password" id="changePassNewInput" placeholder="Min 4 characters" autocomplete="new-password" required />
-                      <button type="button" class="password-toggle-btn" id="togglePassNewBtn" title="Toggle password visibility">
-                        <svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      </button>
+                    <div class="simple-pass-input-wrapper">
+                      <input type="password" id="changePassNewInput" placeholder="At least 4 characters" autocomplete="new-password" required />
+                      <button type="button" class="simple-pass-toggle-btn" id="togglePassNewBtn">Show</button>
                     </div>
                   </div>
                   <div class="field-group">
                     <label for="changePassConfirmInput">Confirm New Password</label>
-                    <div class="password-input-group">
+                    <div class="simple-pass-input-wrapper">
                       <input type="password" id="changePassConfirmInput" placeholder="Re-type new password" autocomplete="new-password" required />
-                      <button type="button" class="password-toggle-btn" id="togglePassConfirmBtn" title="Toggle password visibility">
-                        <svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      </button>
+                      <button type="button" class="simple-pass-toggle-btn" id="togglePassConfirmBtn">Show</button>
                     </div>
                   </div>
                 </div>
-                <div id="changePassFeedback" class="settings-feedback-box hidden"></div>
-                <div class="settings-card-footer">
-                  <button type="submit" id="changePassSubmitBtn" class="btn-filled-primary ripple-btn">
-                    <span class="btn-text">Update Password</span>
-                  </button>
+                <div id="changePassFeedback" class="simple-feedback-box hidden"></div>
+                <div class="simple-form-actions">
+                  <button type="button" id="changePassSubmitBtn" class="btn-filled-primary">Change Password</button>
                 </div>
               </form>
             </div>
           </div>
 
           <!-- ============================================================ -->
-          <!-- PANEL 2: APP PREFERENCES & STARTUP                           -->
+          <!-- TAB 2: APPLICATION PREFERENCES                               -->
           <!-- ============================================================ -->
-          <div id="settingsPanelPreferences" class="settings-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnPreferences">
-            <!-- Theme & Appearance -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Theme &amp; Appearance</h4>
-                  <p class="settings-card-desc">Choose your color mode or automatically sync with Windows system setting.</p>
-                </div>
-              </div>
-
-              <div class="theme-tiles-grid" role="radiogroup" aria-label="Theme preference">
-                <!-- Option 1: System Default -->
-                <label class="theme-tile-card" for="themeRadioSystem" id="themeCardSystem">
+          <div id="settingsPanelPreferences" class="simple-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnPreferences">
+            <!-- Theme Mode -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Color Mode</h3>
+              <p class="simple-section-desc">Select how the application appears on your screen.</p>
+              <div class="simple-radio-group" role="radiogroup" aria-label="Theme mode">
+                <label class="simple-radio-option" for="themeRadioSystem" id="themeCardSystem">
                   <input type="radio" name="themePreference" id="themeRadioSystem" value="system" />
-                  <div class="theme-tile-body">
-                    <span class="theme-tile-radio"></span>
-                    <div class="theme-tile-info">
-                      <span class="theme-tile-title">System Default</span>
-                      <span class="theme-tile-subtitle" id="themeSystemBadge">Windows: Dark</span>
-                    </div>
-                  </div>
+                  <span class="simple-radio-label">System Default (<span id="themeSystemBadge">Follow Windows</span>)</span>
                 </label>
-
-                <!-- Option 2: Dark Mode -->
-                <label class="theme-tile-card" for="themeRadioDark" id="themeCardDark">
+                <label class="simple-radio-option" for="themeRadioDark" id="themeCardDark">
                   <input type="radio" name="themePreference" id="themeRadioDark" value="dark" />
-                  <div class="theme-tile-body">
-                    <span class="theme-tile-radio"></span>
-                    <div class="theme-tile-info">
-                      <span class="theme-tile-title">Dark Mode</span>
-                      <span class="theme-tile-subtitle">Always dark</span>
-                    </div>
-                  </div>
+                  <span class="simple-radio-label">Dark Mode</span>
                 </label>
-
-                <!-- Option 3: Light Mode -->
-                <label class="theme-tile-card" for="themeRadioLight" id="themeCardLight">
+                <label class="simple-radio-option" for="themeRadioLight" id="themeCardLight">
                   <input type="radio" name="themePreference" id="themeRadioLight" value="light" />
-                  <div class="theme-tile-body">
-                    <span class="theme-tile-radio"></span>
-                    <div class="theme-tile-info">
-                      <span class="theme-tile-title">Light Mode</span>
-                      <span class="theme-tile-subtitle">Always light</span>
-                    </div>
+                  <span class="simple-radio-label">Light Mode</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Startup Behavior -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Startup &amp; Login Options</h3>
+              <div class="simple-checkbox-list">
+                <label class="simple-checkbox-option" for="launchAtStartupToggle">
+                  <input type="checkbox" id="launchAtStartupToggle" />
+                  <div>
+                    <strong>Open application when Windows starts</strong>
+                    <p class="simple-option-subtext">Starts Lab Inventory automatically in the background on PC boot.</p>
                   </div>
                 </label>
-              </div>
-            </div>
 
-            <!-- Startup Behavior (Windows) -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Windows Startup Behavior</h4>
-                  <p class="settings-card-desc">Control whether Lab Inventory starts automatically when your PC turns on.</p>
-                </div>
-              </div>
-
-              <div class="settings-toggle-row">
-                <div class="toggle-info-group">
-                  <span class="toggle-title">Open Application on Windows Startup</span>
-                  <span class="toggle-desc">Automatically launch Lab Inventory in the background so your components are ready.</span>
-                </div>
-                <label class="modern-switch" for="launchAtStartupToggle">
-                  <input type="checkbox" id="launchAtStartupToggle" />
-                  <span class="modern-switch-slider"></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Session & Auto-Login Behavior -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Session &amp; Auto-Login</h4>
-                  <p class="settings-card-desc">Streamline login workflow and session persistence on this computer.</p>
-                </div>
-              </div>
-
-              <div class="settings-toggle-row">
-                <div class="toggle-info-group">
-                  <span class="toggle-title">Auto Sign-in on Startup</span>
-                  <span class="toggle-desc">Automatically sign into your account on launch without showing the login screen.</span>
-                </div>
-                <label class="modern-switch" for="autoLoginToggle">
+                <label class="simple-checkbox-option" for="autoLoginToggle">
                   <input type="checkbox" id="autoLoginToggle" />
-                  <span class="modern-switch-slider"></span>
+                  <div>
+                    <strong>Auto sign-in on startup (Keep me signed in)</strong>
+                    <p class="simple-option-subtext">Restores your session automatically. If you click Sign Out, auto sign-in is disabled until your next manual login.</p>
+                  </div>
                 </label>
               </div>
             </div>
           </div>
 
           <!-- ============================================================ -->
-          <!-- PANEL 3: DATABASE & REMOTE SYNC                              -->
+          <!-- TAB 3: DATABASE & REMOTE SYNC                                -->
           <!-- ============================================================ -->
-          <div id="settingsPanelDatabase" class="settings-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnDatabase">
-            <!-- Live Status Banner -->
-            <div class="settings-card">
+          <div id="settingsPanelDatabase" class="simple-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnDatabase">
+            <div class="simple-section">
               <div class="db-status-banner" id="dbStatusBanner">
                 <div class="db-status-indicator">
                   <span class="db-status-dot dot-offline" id="modalStatusDot"></span>
@@ -1013,243 +893,155 @@
               </div>
             </div>
 
-            <!-- Database Mode Selector -->
-            <div class="settings-card">
-              <div class="settings-card-header">
+            <div class="simple-section">
+              <h3 class="simple-section-title">Database Storage Mode</h3>
+              <label class="simple-checkbox-option" for="dbEnableSyncToggle">
+                <input type="checkbox" id="dbEnableSyncToggle" />
                 <div>
-                  <h4 class="settings-card-title">Database Storage Mode</h4>
-                  <p class="settings-card-desc">Store inventory locally in SQLite, or connect to an online MySQL server for team sync.</p>
+                  <strong>Enable Online MySQL Synchronization</strong>
+                  <p class="simple-option-subtext">When unchecked, data is stored locally in <code>data/lab_inventory.db</code> (SQLite).</p>
                 </div>
-              </div>
-
-              <div class="settings-toggle-row highlight-toggle-row">
-                <div class="toggle-info-group">
-                  <span class="toggle-title">Enable Online MySQL Synchronization</span>
-                  <span class="toggle-desc">When disabled, all data is stored locally in <code>data/lab_inventory.db</code> (SQLite).</span>
-                </div>
-                <label class="modern-switch" for="dbEnableSyncToggle">
-                  <input type="checkbox" id="dbEnableSyncToggle" />
-                  <span class="modern-switch-slider"></span>
-                </label>
-              </div>
+              </label>
 
               <!-- Connection Settings Form -->
-              <form id="dbSettingsForm" class="db-form-grid" onsubmit="return false;">
+              <form id="dbSettingsForm" class="db-form-grid" style="margin-top: 14px;">
                 <div class="field-group">
                   <label for="dbHostInput">MySQL Host / IP</label>
                   <input type="text" id="dbHostInput" placeholder="localhost or 192.168.1.100" autocomplete="off" />
                 </div>
-
                 <div class="field-group">
                   <label for="dbPortInput">Port</label>
                   <input type="number" id="dbPortInput" placeholder="3306" value="3306" autocomplete="off" />
                 </div>
-
                 <div class="field-group">
                   <label for="dbNameInput">Database Name</label>
                   <input type="text" id="dbNameInput" placeholder="lab_inventory_db" autocomplete="off" />
                 </div>
-
                 <div class="field-group">
                   <label for="dbUserInput">Username</label>
                   <input type="text" id="dbUserInput" placeholder="root or lab_user" autocomplete="off" />
                 </div>
-
                 <div class="field-group span-full">
                   <label for="dbPasswordInput">Password</label>
-                  <div class="password-input-group">
+                  <div class="simple-pass-input-wrapper">
                     <input type="password" id="dbPasswordInput" placeholder="••••••••" autocomplete="new-password" />
-                    <button type="button" class="password-toggle-btn" id="toggleDbPasswordBtn" title="Toggle password visibility">
-                      <svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
+                    <button type="button" class="simple-pass-toggle-btn" id="toggleDbPasswordBtn">Show</button>
                   </div>
                 </div>
               </form>
 
-              <!-- Test Connection Result Feedback -->
               <div id="dbTestFeedback" class="db-feedback-box hidden"></div>
 
-              <div class="settings-card-footer db-actions-footer">
-                <button id="dbTestBtn" class="btn-outlined ripple-btn" type="button">Test Connection</button>
-                <button id="dbSyncBtn" class="btn-tonal-teal ripple-btn" type="button">Sync Now</button>
-                <button id="dbSaveBtn" class="btn-filled-primary ripple-btn" type="button">Save &amp; Connect</button>
+              <div class="simple-form-actions">
+                <button id="dbTestBtn" class="btn-outlined" type="button">Test Connection</button>
+                <button id="dbSyncBtn" class="btn-tonal-teal" type="button">Sync Now</button>
+                <button id="dbSaveBtn" class="btn-filled-primary" type="button">Save &amp; Connect</button>
               </div>
             </div>
 
-            <!-- External Access & DBeaver Guide -->
-            <div class="settings-card">
-              <div class="db-guide-box">
-                <div class="db-guide-header">
-                  <strong>How to Access the Database in DBeaver / External Tools</strong>
-                </div>
-                <div class="db-guide-content">
-                  <p><strong>1. Local SQLite Database</strong>: In DBeaver, select <em>New Connection</em> &rarr; <em>SQLite</em> &rarr; browse to <code>data/lab_inventory.db</code>. Supports all standard SQL queries.</p>
-                  <p><strong>2. Remote MySQL Database</strong>: Enter your MySQL host &amp; port above. The app automatically creates the <code>lab_inventory</code> and <code>inventory_audit_log</code> tables.</p>
-                  <p><strong>3. Quick Query</strong>: <code>SELECT mpn, quantity, value, footprint, location FROM lab_inventory;</code></p>
-                </div>
-              </div>
+            <!-- External Access Info -->
+            <div class="simple-section">
+              <h4 class="simple-section-title" style="font-size: 13px;">DBeaver / External SQL Access</h4>
+              <p class="simple-section-desc"><strong>Local Database:</strong> Open DBeaver &rarr; SQLite &rarr; select <code>data/lab_inventory.db</code>.</p>
+              <p class="simple-section-desc"><strong>Remote Database:</strong> Connect via MySQL to the host and database specified above.</p>
             </div>
           </div>
 
           <!-- ============================================================ -->
-          <!-- PANEL 4: ABOUT & SOFTWARE UPDATES                            -->
+          <!-- TAB 4: ABOUT & SOFTWARE UPDATES                             -->
           <!-- ============================================================ -->
-          <div id="settingsPanelAbout" class="settings-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnAbout">
-            <!-- App Identity Card -->
-            <div class="settings-card">
-              <div class="about-hero-cluster">
-                <div class="about-app-icon-wrapper">
-                  <img src="../../assets/Images/package_6215997.png" alt="Lab Inventory Logo" class="about-app-logo" />
+          <div id="settingsPanelAbout" class="simple-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnAbout">
+            <!-- App Information -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Application Information</h3>
+              <div class="simple-info-grid">
+                <div class="simple-info-row">
+                  <span class="simple-info-label">Application:</span>
+                  <strong>Lab Inventory &amp; BOM Analyzer</strong>
                 </div>
-                <div class="about-hero-details">
-                  <div class="about-title-row">
-                    <h3 class="about-app-title">Lab Inventory &amp; BOM Analyzer</h3>
-                    <span class="about-version-badge" id="aboutAppVersionBadge">v2.1.0</span>
-                  </div>
-                  <p class="about-app-desc">Professional Electronics Lab Component Manager &amp; Bill of Materials Availability Engine.</p>
-                  <div class="about-meta-row">
-                    <span>Author: <strong>Ahmed Aboeita</strong></span>
-                    <span class="meta-separator">•</span>
-                    <span>License: <strong>MIT</strong></span>
-                    <span class="meta-separator">•</span>
-                    <span>Storage: <strong>SQLite &amp; MySQL</strong></span>
-                  </div>
+                <div class="simple-info-row">
+                  <span class="simple-info-label">Version:</span>
+                  <strong id="aboutAppVersionBadge">v2.1.1</strong>
+                </div>
+                <div class="simple-info-row">
+                  <span class="simple-info-label">Developer:</span>
+                  <span>Ahmed Aboeita</span>
+                </div>
+                <div class="simple-info-row">
+                  <span class="simple-info-label">License:</span>
+                  <span>MIT License</span>
+                </div>
+                <div class="simple-info-row">
+                  <span class="simple-info-label">Environment:</span>
+                  <span id="simpleRuntimeSpecs">Windows x64 &bull; Electron 33.2 &bull; Node 20.18</span>
                 </div>
               </div>
             </div>
 
-            <!-- GitHub Releases & Update Checker Card -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">Software Updates</h4>
-                  <p class="settings-card-desc">Check for new releases published to the official GitHub repository.</p>
-                </div>
-              </div>
+            <!-- Software Updates -->
+            <div class="simple-section">
+              <h3 class="simple-section-title">Software Updates</h3>
+              <p class="simple-section-desc">Checks releases from repository <code>AhmedAbo-Eita/Electronics_Lab_Inventory</code>.</p>
 
-              <!-- Live Update Status Banner -->
-              <div class="update-status-card" id="updateStatusCard">
-                <div class="update-status-icon-wrapper" id="updateStatusIconWrapper">
-                  <svg class="update-status-icon" id="updateStatusIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
+              <div class="simple-update-status-box">
+                <div>
+                  <strong id="updateStatusHeadline">Updates are up to date</strong>
+                  <p id="updateStatusSubtext" class="simple-option-subtext">Current version: v2.1.1.</p>
+                  <span id="updateLastCheckedLabel" class="simple-info-muted">Last checked: Never</span>
                 </div>
-                <div class="update-status-info">
-                  <span class="update-status-headline" id="updateStatusHeadline">Updates are up to date</span>
-                  <span class="update-status-subtext" id="updateStatusSubtext">Current version: v2.1.0 • Connected to GitHub release feed.</span>
-                  <span class="update-last-checked" id="updateLastCheckedLabel">Last checked: Never</span>
-                </div>
-                <div class="update-actions-cluster">
-                  <button type="button" id="checkForUpdatesBtn" class="btn-filled-primary ripple-btn">
-                    <svg class="btn-icon-spin" id="updateBtnIcon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                    </svg>
+                <div class="simple-update-actions">
+                  <button type="button" id="checkForUpdatesBtn" class="btn-filled-primary">
                     <span id="updateBtnText">Check for Updates</span>
                   </button>
-                  <button type="button" id="simulateUpdateBtn" class="btn-outlined ripple-btn btn-sm" title="Test update UI &amp; download animation">
-                    <span>Demo Update UI</span>
-                  </button>
+                  <button type="button" id="simulateUpdateBtn" class="btn-outlined btn-sm">Demo Check</button>
                 </div>
               </div>
 
-              <!-- Available Update Details View (Dynamic) -->
-              <div id="updateFoundDetails" class="update-found-box hidden">
-                <div class="update-found-header">
-                  <div class="update-tag-cluster">
-                    <span class="update-new-badge">New Release Available</span>
-                    <span class="update-version-tag" id="updateFoundVersionTag">v2.1.0</span>
-                    <span class="update-release-date" id="updateFoundDate">Published Oct 2026</span>
-                  </div>
-                  <span class="update-asset-size" id="updateFoundSize">65 MB</span>
+              <!-- Available Update Details View -->
+              <div id="updateFoundDetails" class="simple-update-found-box hidden">
+                <div class="simple-info-row">
+                  <strong>New Release:</strong>
+                  <span id="updateFoundVersionTag" style="color: var(--primary); font-weight: bold;">v2.1.1</span>
+                  <span id="updateFoundDate" class="simple-info-muted"></span>
+                  <span id="updateFoundSize" class="simple-info-muted"></span>
                 </div>
-                <h5 class="update-release-name" id="updateFoundTitle">Lab Inventory Update</h5>
-                <div class="update-changelog-box" id="updateFoundChangelog">
-                  <!-- Formatted release notes inserted dynamically -->
-                </div>
+                <div id="updateFoundTitle" style="font-weight: 600; margin: 4px 0;"></div>
+                <div class="simple-changelog-text" id="updateFoundChangelog"></div>
 
-                <!-- Download Progress Bar (Animated) -->
-                <div id="updateDownloadProgressWrapper" class="update-progress-wrapper hidden">
-                  <div class="update-progress-info">
-                    <span id="updateProgressText">Downloading update installer...</span>
+                <!-- Simple Progress Bar -->
+                <div id="updateDownloadProgressWrapper" class="simple-progress-container hidden">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                    <span id="updateProgressText">Downloading...</span>
                     <span id="updateProgressPercent">0%</span>
                   </div>
-                  <div class="update-progress-track">
-                    <div class="update-progress-bar" id="updateProgressBar" style="width: 0%;"></div>
+                  <div class="simple-progress-track">
+                    <div class="simple-progress-bar" id="updateProgressBar" style="width: 0%;"></div>
                   </div>
                 </div>
 
-                <div class="update-found-actions">
-                  <button type="button" id="downloadUpdateBtn" class="btn-filled-primary ripple-btn">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <span>Download Update (.exe)</span>
-                  </button>
-                  <button type="button" id="openDownloadedFileBtn" class="btn-tonal-teal ripple-btn hidden">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M5 12h14"></path>
-                      <path d="m12 5 7 7-7 7"></path>
-                    </svg>
-                    <span>Open Installer in Folder</span>
-                  </button>
-                  <button type="button" id="viewReleaseGitHubBtn" class="btn-outlined ripple-btn">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                      <polyline points="15 3 21 3 21 9"></polyline>
-                      <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
-                    <span>View on GitHub</span>
-                  </button>
+                <div class="simple-form-actions" style="margin-top: 8px;">
+                  <button type="button" id="downloadUpdateBtn" class="btn-filled-primary">Download Update (.exe)</button>
+                  <button type="button" id="openDownloadedFileBtn" class="btn-tonal-teal hidden">Open Installer in Folder</button>
+                  <button type="button" id="viewReleaseGitHubBtn" class="btn-outlined">View on GitHub</button>
                 </div>
               </div>
 
               <!-- Auto-check Toggle -->
-              <div class="settings-toggle-row mt-12">
-                <div class="toggle-info-group">
-                  <span class="toggle-title">Check for updates on application launch</span>
-                  <span class="toggle-desc">Automatically ping GitHub releases at startup to notify you of newer builds.</span>
-                </div>
-                <label class="modern-switch" for="checkUpdatesStartupToggle">
+              <div style="margin-top: 12px;">
+                <label class="simple-checkbox-option" for="checkUpdatesStartupToggle">
                   <input type="checkbox" id="checkUpdatesStartupToggle" checked />
-                  <span class="modern-switch-slider"></span>
+                  <div>
+                    <strong>Check for updates automatically on application startup</strong>
+                  </div>
                 </label>
               </div>
             </div>
 
-            <!-- Diagnostics & System Environment -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div>
-                  <h4 class="settings-card-title">System &amp; Runtime Environment</h4>
-                  <p class="settings-card-desc">Diagnostic details for support, bug reports, and hardware compatibility.</p>
-                </div>
-              </div>
-              <div class="runtime-chips-grid" id="systemInfoChipsGrid">
-                <div class="runtime-chip"><span class="chip-label">App:</span><span class="chip-val">v2.1.0</span></div>
-                <div class="runtime-chip"><span class="chip-label">Electron:</span><span class="chip-val">v33.2.0</span></div>
-                <div class="runtime-chip"><span class="chip-label">Chromium:</span><span class="chip-val">v130</span></div>
-                <div class="runtime-chip"><span class="chip-label">Node:</span><span class="chip-val">v20.18</span></div>
-                <div class="runtime-chip"><span class="chip-label">Platform:</span><span class="chip-val">win32 (x64)</span></div>
-                <div class="runtime-chip"><span class="chip-label">Database Engine:</span><span class="chip-val">SQLite 3 / MySQL</span></div>
-              </div>
-              <div class="settings-card-footer">
-                <button type="button" id="openRepoBtn" class="btn-outlined ripple-btn btn-sm">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                  </svg>
-                  <span>Open GitHub Repository</span>
-                </button>
-                <button type="button" id="reportIssueBtn" class="btn-outlined ripple-btn btn-sm">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                  <span>Report an Issue</span>
-                </button>
+            <!-- Links -->
+            <div class="simple-section">
+              <div class="simple-form-actions" style="justify-content: flex-start;">
+                <button type="button" id="openRepoBtn" class="btn-outlined btn-sm">GitHub Repository</button>
+                <button type="button" id="reportIssueBtn" class="btn-outlined btn-sm">Report an Issue</button>
               </div>
             </div>
           </div>

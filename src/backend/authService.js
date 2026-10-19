@@ -194,16 +194,16 @@ async function getCurrentUser() {
 }
 
 /**
- * Clears current session user on logout and clears saved auto-login user.
+ * Clears current session user on logout and disables auto-login.
  */
 function logoutUser() {
   currentSessionUser = null;
-  appSettings.saveSettings({ autoLoginUsername: '' });
+  appSettings.saveSettings({ autoLogin: false, autoLoginUsername: '' });
   return { ok: true };
 }
 
 /**
- * Updates a user's email address after verifying their current password.
+ * Updates a user's email address after verifying their current password against the database.
  *
  * @param {Object} params
  * @param {string} params.username
@@ -212,54 +212,61 @@ function logoutUser() {
  * @returns {Promise<{ ok: boolean, email?: string, error?: string }>}
  */
 async function changeUserEmail({ username, newEmail, currentPassword }) {
-  const cleanUser = String(username || '').trim();
+  let cleanUser = String(username || '').trim();
+  if (!cleanUser && currentSessionUser) {
+    cleanUser = currentSessionUser.username;
+  }
+
   const cleanEmail = String(newEmail || '').trim().toLowerCase();
   const cleanPass = String(currentPassword || '');
 
   if (!cleanUser) {
-    return { ok: false, error: 'User is not authenticated.' };
+    return { ok: false, error: 'Please sign into your account first.' };
   }
   if (!cleanEmail || !isValidEmail(cleanEmail)) {
     return { ok: false, error: 'Please enter a valid email address.' };
   }
   if (!cleanPass) {
-    return { ok: false, error: 'Please enter your current password to confirm this change.' };
+    return { ok: false, error: 'Please enter your current password to verify your identity.' };
   }
 
+  // 1. Check user exists in database
   const user = await sqliteDb.getUserByUsername(cleanUser);
   if (!user) {
-    return { ok: false, error: 'User account not found.' };
+    return { ok: false, error: 'User account not found in database.' };
   }
 
   if (user.email.toLowerCase() === cleanEmail) {
     return { ok: false, error: 'The new email address matches your current email.' };
   }
 
-  // Check if target email is taken by another account
+  // 2. Check if new email is taken by another account
   const existingWithEmail = await sqliteDb.getUserByEmail(cleanEmail);
   if (existingWithEmail && existingWithEmail.username.toLowerCase() !== cleanUser.toLowerCase()) {
     return { ok: false, error: `Email '${cleanEmail}' is already registered to another account.` };
   }
 
+  // 3. Verify current password against encrypted hash in database
   const isMatch = verifyPassword(cleanPass, user.passwordHash);
   if (!isMatch) {
-    return { ok: false, error: 'Incorrect current password.' };
+    return { ok: false, error: 'Incorrect current password. Verification with database failed.' };
   }
 
+  // 4. Update in database
   const updateRes = await sqliteDb.updateUserEmail(cleanUser, cleanEmail);
   if (!updateRes.ok) {
-    return { ok: false, error: updateRes.error || 'Failed to update email address.' };
+    return { ok: false, error: updateRes.error || 'Failed to update email address in database.' };
   }
 
   if (currentSessionUser && currentSessionUser.username.toLowerCase() === cleanUser.toLowerCase()) {
     currentSessionUser.email = cleanEmail;
   }
 
-  return { ok: true, email: cleanEmail };
+  return { ok: true, email: cleanEmail, message: 'Email address successfully updated in database.' };
 }
 
 /**
- * Updates a user's password after verifying their current password.
+ * Updates a user's password after verifying their current password against the database.
  *
  * @param {Object} params
  * @param {string} params.username
@@ -268,12 +275,16 @@ async function changeUserEmail({ username, newEmail, currentPassword }) {
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
 async function changeUserPassword({ username, currentPassword, newPassword }) {
-  const cleanUser = String(username || '').trim();
+  let cleanUser = String(username || '').trim();
+  if (!cleanUser && currentSessionUser) {
+    cleanUser = currentSessionUser.username;
+  }
+
   const cleanCurrentPass = String(currentPassword || '');
   const cleanNewPass = String(newPassword || '');
 
   if (!cleanUser) {
-    return { ok: false, error: 'User is not authenticated.' };
+    return { ok: false, error: 'Please sign into your account first.' };
   }
   if (!cleanCurrentPass) {
     return { ok: false, error: 'Please enter your current password.' };
@@ -285,23 +296,26 @@ async function changeUserPassword({ username, currentPassword, newPassword }) {
     return { ok: false, error: 'New password must be different from current password.' };
   }
 
+  // 1. Query user from database
   const user = await sqliteDb.getUserByUsername(cleanUser);
   if (!user) {
-    return { ok: false, error: 'User account not found.' };
+    return { ok: false, error: 'User account not found in database.' };
   }
 
+  // 2. Verify current password with encrypted database record
   const isMatch = verifyPassword(cleanCurrentPass, user.passwordHash);
   if (!isMatch) {
-    return { ok: false, error: 'Incorrect current password.' };
+    return { ok: false, error: 'Incorrect current password. Verification with database failed.' };
   }
 
+  // 3. Generate new salt + scrypt hash and update database
   const newHash = hashPassword(cleanNewPass);
   const updateRes = await sqliteDb.updateUserPassword(cleanUser, newHash);
   if (!updateRes.ok) {
-    return { ok: false, error: updateRes.error || 'Failed to update password.' };
+    return { ok: false, error: updateRes.error || 'Failed to update password in database.' };
   }
 
-  return { ok: true };
+  return { ok: true, message: 'Password has been updated in database.' };
 }
 
 module.exports = {
