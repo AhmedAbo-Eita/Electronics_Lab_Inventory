@@ -3985,20 +3985,6 @@ body.light-theme .simple-settings-modal {
     box-shadow 0.22s var(--ease-standard);
 }
 
-.simple-tab-btn::before {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 50%;
-  width: 4px;
-  height: 16px;
-  border-radius: 999px;
-  background-color: var(--primary);
-  transform: translateY(-50%) scaleY(0);
-  opacity: 0;
-  transition: transform 0.28s var(--ease-spring), opacity 0.2s var(--ease-standard);
-}
-
 .simple-tab-btn:hover {
   background: var(--bg-container-high);
   color: var(--text-primary);
@@ -4009,14 +3995,8 @@ body.light-theme .simple-settings-modal {
   background: var(--primary-container);
   color: var(--on-primary-container);
   font-weight: 600;
-  padding-left: 20px;
   transform: translateX(0);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
-}
-
-.simple-tab-btn.active::before {
-  transform: translateY(-50%) scaleY(1);
-  opacity: 1;
 }
 
 body.dark-theme .simple-tab-btn.active {
@@ -4231,47 +4211,48 @@ body.light-theme .simple-tab-btn.active {
 
 .simple-pass-input-wrapper input {
   flex: 1;
-  padding-right: 76px !important;
+  padding-right: 38px !important;
 }
 
 .simple-pass-toggle-btn {
   position: absolute;
   right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--bg-container-high);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  color: var(--text-secondary);
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
   cursor: pointer;
   user-select: none;
   transition:
     background-color 0.18s var(--ease-standard),
     color 0.18s var(--ease-standard),
-    border-color 0.18s var(--ease-standard),
     transform 0.18s var(--ease-spring);
 }
 
 .simple-pass-toggle-btn:hover {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
-  border-color: var(--primary);
-  transform: scale(1.03);
+  background: var(--bg-container-high);
+  color: var(--text-primary);
+  transform: translateY(-50%) scale(1.08);
 }
 
 .simple-pass-toggle-btn:active {
-  transform: scale(0.96);
+  transform: translateY(-50%) scale(0.92);
 }
 
 .simple-pass-toggle-btn .pass-toggle-icon {
-  width: 13.5px;
-  height: 13.5px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   stroke: currentColor;
+  stroke-width: 1.75;
 }
 
 /* Formal Feedback Boxes with Slide Animation */
