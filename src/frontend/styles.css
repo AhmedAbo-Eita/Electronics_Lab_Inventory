@@ -3822,28 +3822,123 @@ body.dark-theme .audit-action-revert {
 }
 
 /* ============================================================================
- * Clean & Simple Multi-Tab Settings Dialog (No Icons, No AI shapes, Flat Design)
+ * Modern Google Material Design 3 (Material You) Multi-Tab Settings
+ * Clean text-only pill navigation, fluid cubic-bezier animations, elevated cards
  * ============================================================================ */
 
+@keyframes settingsModalSpringIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes settingsTabGlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes settingsCardStagger {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes settingsFeedbackSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes checkboxSpringPop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .simple-settings-modal {
-  width: 760px;
+  width: 800px;
   max-width: 95vw;
-  height: 600px;
+  height: 620px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 20px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.48), 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: settingsModalSpringIn 0.32s var(--ease-emphasized) both;
+}
+
+body.light-theme .simple-settings-modal {
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.14), 0 4px 14px rgba(15, 23, 42, 0.07);
 }
 
 .simple-settings-header {
-  padding: 16px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: var(--bg-surface);
+}
+
+.simple-settings-header .modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+}
+
+.simple-settings-header .modal-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.simple-settings-header .modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: background-color 0.2s var(--ease-standard), transform 0.25s var(--ease-spring), color 0.2s var(--ease-standard);
+}
+
+.simple-settings-header .modal-close-btn:hover {
+  background-color: var(--bg-container-highest);
+  color: var(--text-primary);
+  transform: rotate(90deg) scale(1.06);
 }
 
 .simple-settings-layout {
@@ -3854,108 +3949,178 @@ body.dark-theme .audit-action-revert {
   background: var(--bg-container);
 }
 
+/* Google Material 3 Navigation Drawer (Text-Only Pills) */
 .simple-settings-nav {
-  width: 175px;
+  width: 192px;
   flex-shrink: 0;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-subtle);
-  padding: 12px 8px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   overflow-y: auto;
 }
 
 .simple-tab-btn {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 11px 16px;
+  border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   font-size: 13.5px;
   font-weight: 500;
+  letter-spacing: 0.1px;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
   user-select: none;
+  transition:
+    background-color 0.22s var(--ease-standard),
+    color 0.22s var(--ease-standard),
+    transform 0.22s var(--ease-emphasized),
+    box-shadow 0.22s var(--ease-standard);
+}
+
+.simple-tab-btn::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 4px;
+  height: 16px;
+  border-radius: 999px;
+  background-color: var(--primary);
+  transform: translateY(-50%) scaleY(0);
+  opacity: 0;
+  transition: transform 0.28s var(--ease-spring), opacity 0.2s var(--ease-standard);
 }
 
 .simple-tab-btn:hover {
   background: var(--bg-container-high);
   color: var(--text-primary);
+  transform: translateX(3px);
 }
 
 .simple-tab-btn.active {
-  background: var(--bg-container-highest);
-  color: var(--primary);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   font-weight: 600;
-  border-color: var(--border-subtle);
+  padding-left: 20px;
+  transform: translateX(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+
+.simple-tab-btn.active::before {
+  transform: translateY(-50%) scaleY(1);
+  opacity: 1;
 }
 
 body.dark-theme .simple-tab-btn.active {
-  background: rgba(168, 199, 250, 0.12);
-  color: #A8C7FA;
-  border-color: rgba(168, 199, 250, 0.25);
+  background: rgba(168, 199, 250, 0.15);
+  color: #C2E7FF;
+  border-color: rgba(168, 199, 250, 0.24);
 }
 
 body.light-theme .simple-tab-btn.active {
-  background: #E8F0FE;
-  color: #1a73e8;
-  border-color: rgba(26, 115, 232, 0.25);
+  background: #D3E3FD;
+  color: #041E49;
+  border-color: rgba(11, 87, 208, 0.16);
+  box-shadow: 0 1px 3px rgba(11, 87, 208, 0.08);
 }
 
+/* Content Area & Animated Tab Panels */
 .simple-settings-content {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 22px 26px;
   display: flex;
   flex-direction: column;
+  scroll-behavior: smooth;
 }
 
 .simple-tab-panel {
   display: none;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   width: 100%;
 }
 
 .simple-tab-panel.active {
   display: flex;
+  animation: settingsTabGlideIn 0.26s var(--ease-emphasized) both;
 }
 
+.simple-tab-panel.active > .simple-section:nth-child(1) {
+  animation: settingsCardStagger 0.3s var(--ease-emphasized) 0.02s both;
+}
+.simple-tab-panel.active > .simple-section:nth-child(2) {
+  animation: settingsCardStagger 0.34s var(--ease-emphasized) 0.06s both;
+}
+.simple-tab-panel.active > .simple-section:nth-child(3) {
+  animation: settingsCardStagger 0.38s var(--ease-emphasized) 0.1s both;
+}
+
+/* Google Material 3 Surface Cards */
 .simple-section {
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 18px 20px;
   background: var(--bg-container-low);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  gap: 10px;
+  border-radius: 14px;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.22s var(--ease-standard),
+    background-color 0.22s var(--ease-standard),
+    transform 0.22s var(--ease-emphasized),
+    box-shadow 0.22s var(--ease-standard);
+}
+
+.simple-section:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .simple-section-title {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.1px;
   color: var(--text-primary);
 }
 
 .simple-section-desc {
-  margin: 0;
+  margin: -4px 0 0;
   font-size: 12px;
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
+.simple-section-desc code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--bg-container-highest);
+  color: var(--primary);
+  font-size: 11.5px;
+}
+
+/* Account Profile Card */
 .simple-account-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
 }
 
 .simple-account-details {
@@ -3981,13 +4146,14 @@ body.light-theme .simple-tab-btn.active {
 
 .simple-info-label {
   color: var(--text-muted);
-  min-width: 80px;
+  min-width: 85px;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .simple-info-val {
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .simple-info-muted {
@@ -3996,20 +4162,15 @@ body.light-theme .simple-tab-btn.active {
 }
 
 .simple-badge-active {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(15, 157, 88, 0.12);
-  color: #0F9D58;
-  border: 1px solid rgba(15, 157, 88, 0.3);
-}
-
-body.dark-theme .simple-badge-active {
-  background: rgba(129, 201, 149, 0.15);
-  color: #81C995;
-  border-color: rgba(129, 201, 149, 0.3);
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border: 1px solid var(--ok-border);
 }
 
 .simple-badge-active.badge-offline {
@@ -4018,17 +4179,47 @@ body.dark-theme .simple-badge-active {
   border-color: var(--border-subtle);
 }
 
+/* Form Layouts & Google Material 3 Inputs */
 .simple-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 2px;
 }
 
 .simple-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
+}
+
+.simple-settings-modal input[type="text"],
+.simple-settings-modal input[type="email"],
+.simple-settings-modal input[type="password"],
+.simple-settings-modal input[type="number"] {
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
+}
+
+.simple-settings-modal input[type="text"]:hover,
+.simple-settings-modal input[type="email"]:hover,
+.simple-settings-modal input[type="password"]:hover,
+.simple-settings-modal input[type="number"]:hover {
+  border-color: var(--border-strong);
+}
+
+.simple-settings-modal input[type="text"]:focus,
+.simple-settings-modal input[type="email"]:focus,
+.simple-settings-modal input[type="password"]:focus,
+.simple-settings-modal input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .simple-pass-input-wrapper {
@@ -4040,7 +4231,7 @@ body.dark-theme .simple-badge-active {
 
 .simple-pass-input-wrapper input {
   flex: 1;
-  padding-right: 60px;
+  padding-right: 76px !important;
 }
 
 .simple-pass-toggle-btn {
@@ -4049,86 +4240,154 @@ body.dark-theme .simple-badge-active {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
-  font-size: 11.5px;
-  font-weight: 500;
-  background: var(--bg-container-highest);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-container-high);
   border: 1px solid var(--border-subtle);
-  border-radius: 4px;
+  border-radius: 999px;
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.18s var(--ease-standard),
+    color 0.18s var(--ease-standard),
+    border-color 0.18s var(--ease-standard),
+    transform 0.18s var(--ease-spring);
 }
 
 .simple-pass-toggle-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-color: var(--primary);
+  transform: scale(1.03);
+}
+
+.simple-pass-toggle-btn:active {
+  transform: scale(0.96);
 }
 
 .simple-pass-toggle-btn .pass-toggle-icon {
-  width: 14px;
-  height: 14px;
+  width: 13.5px;
+  height: 13.5px;
   flex-shrink: 0;
   stroke: currentColor;
 }
 
+/* Formal Feedback Boxes with Slide Animation */
 .simple-feedback-box {
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
   font-size: 12px;
-  line-height: 1.4;
-  margin-top: 4px;
+  line-height: 1.45;
+  margin-top: 2px;
   font-weight: 500;
+  animation: settingsFeedbackSlide 0.24s var(--ease-emphasized) both;
 }
 
 .simple-feedback-box.feedback-success {
   background: var(--ok-bg);
   color: var(--ok-text);
   border: 1px solid var(--ok-border);
-  border-left: 3px solid var(--ok-text);
+  border-left: 3.5px solid var(--ok-text);
 }
 
 .simple-feedback-box.feedback-error {
   background: var(--err-bg);
   color: var(--err-text);
   border: 1px solid var(--err-border);
-  border-left: 3px solid var(--err-text);
+  border-left: 3.5px solid var(--err-text);
 }
 
 .simple-form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
+/* Google Material 3 Radio Option Pills */
 .simple-radio-group {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
 }
 
 .simple-radio-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 10px;
+  padding: 11px 15px;
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 12px;
   background: var(--bg-surface);
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.2s var(--ease-standard),
+    background-color 0.2s var(--ease-standard),
+    transform 0.2s var(--ease-emphasized),
+    box-shadow 0.2s var(--ease-standard);
   user-select: none;
 }
 
 .simple-radio-option:hover {
   border-color: var(--border-strong);
+  background: var(--bg-container-high);
+  transform: translateY(-1px);
 }
 
+.simple-radio-option input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--bg-container);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
+}
+
+.simple-radio-option input[type="radio"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  transform: scale(0);
+  transition: transform 0.22s var(--ease-spring);
+}
+
+.simple-radio-option input[type="radio"]:checked {
+  border-color: var(--primary);
+}
+
+.simple-radio-option input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+.simple-radio-option:has(input[type="radio"]:checked) {
+  border-color: var(--primary);
+  background: rgba(168, 199, 250, 0.1);
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .simple-radio-option:has(input[type="radio"]:checked) {
+  background: #E8F0FE;
+  color: #0B57D0;
+  border-color: #0B57D0;
+  box-shadow: 0 2px 8px rgba(11, 87, 208, 0.08);
+}
+
+/* Google Material 3 Checkbox Cards */
 .simple-checkbox-list {
   display: flex;
   flex-direction: column;
@@ -4139,20 +4398,35 @@ body.dark-theme .simple-badge-active {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 12px 15px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-primary);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.2s var(--ease-standard),
+    background-color 0.2s var(--ease-standard),
+    transform 0.2s var(--ease-emphasized),
+    box-shadow 0.2s var(--ease-standard);
   user-select: none;
 }
 
 .simple-checkbox-option:hover {
   border-color: var(--border-strong);
   background: var(--bg-container-high);
+  transform: translateY(-1px);
+}
+
+.simple-checkbox-option:has(input[type="checkbox"]:checked) {
+  border-color: rgba(168, 199, 250, 0.35);
+  background: rgba(168, 199, 250, 0.05);
+}
+
+body.light-theme .simple-checkbox-option:has(input[type="checkbox"]:checked) {
+  border-color: rgba(11, 87, 208, 0.3);
+  background: #F4F8FE;
 }
 
 .simple-checkbox-option input[type="checkbox"] {
@@ -4163,12 +4437,15 @@ body.dark-theme .simple-badge-active {
   min-width: 18px;
   margin: 1px 0 0 0;
   border: 2px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: 5px;
   background-color: var(--bg-container);
   cursor: pointer;
   display: grid;
   place-content: center;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.18s var(--ease-standard),
+    border-color 0.18s var(--ease-standard),
+    transform 0.2s var(--ease-spring);
   position: relative;
 }
 
@@ -4188,19 +4465,29 @@ body.dark-theme .simple-badge-active {
   background-size: 11px 11px;
   background-position: center;
   background-repeat: no-repeat;
+  animation: checkboxSpringPop 0.26s var(--ease-spring);
+}
+
+body.dark-theme .simple-checkbox-option input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23062E6F'%3E%3Cpath d='M13.485 3.515a1 1 0 0 1 0 1.414l-7 7a1 1 0 0 1-1.414 0l-3-3a1 1 0 1 1 1.414-1.414L6 10.086l6.293-6.293a1 1 0 0 1 1.414 0z'/%3E%3C/svg%3E");
 }
 
 .simple-option-subtext {
   margin: 3px 0 0;
   font-size: 11.5px;
   color: var(--text-muted);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
+/* About & Updates Section */
 .simple-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
 }
 
 .simple-update-status-box {
@@ -4208,11 +4495,12 @@ body.dark-theme .simple-badge-active {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 12px;
   flex-wrap: wrap;
+  transition: border-color 0.2s var(--ease-standard);
 }
 
 .simple-update-actions {
@@ -4224,23 +4512,24 @@ body.dark-theme .simple-badge-active {
 .simple-update-found-box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  margin-top: 10px;
+  border-radius: 12px;
+  margin-top: 8px;
+  animation: settingsCardStagger 0.28s var(--ease-emphasized) both;
 }
 
 .simple-changelog-text {
-  max-height: 130px;
+  max-height: 135px;
   overflow-y: auto;
   font-size: 11.5px;
-  line-height: 1.45;
-  padding: 8px 10px;
-  background: var(--bg-container-lowest);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--bg-container-low);
   border: 1px solid var(--border-subtle);
-  border-radius: 4px;
+  border-radius: 8px;
   white-space: pre-wrap;
   color: var(--text-secondary);
 }
@@ -4248,23 +4537,24 @@ body.dark-theme .simple-badge-active {
 .simple-progress-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   margin: 8px 0;
+  animation: settingsFeedbackSlide 0.22s var(--ease-emphasized) both;
 }
 
 .simple-progress-track {
   width: 100%;
-  height: 6px;
+  height: 7px;
   background: var(--bg-container-highest);
-  border-radius: 3px;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .simple-progress-bar {
   height: 100%;
-  background: var(--primary);
-  border-radius: 3px;
-  transition: width 0.15s ease-out;
+  background: linear-gradient(90deg, var(--primary), var(--primary-grad-end));
+  border-radius: 999px;
+  transition: width 0.22s var(--ease-standard);
 }
 
 
