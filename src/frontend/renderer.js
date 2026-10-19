@@ -1897,6 +1897,9 @@ function closeDatabaseModal() {
   if (modal) modal.classList.add('hidden');
 }
 
+const EYE_OPEN_SVG = `<svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+const EYE_CLOSED_SVG = `<svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
 /**
  * Helper to wire up password eye show/hide toggle buttons
  */
@@ -1905,11 +1908,15 @@ function setupPasswordToggle(btnId, inputId) {
   const input = document.getElementById(inputId);
   if (!btn || !input) return;
 
+  btn.innerHTML = `${EYE_OPEN_SVG}<span>Show</span>`;
+
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     const isPass = input.type === 'password';
     input.type = isPass ? 'text' : 'password';
-    btn.textContent = isPass ? 'Hide' : 'Show';
+    btn.innerHTML = isPass
+      ? `${EYE_CLOSED_SVG}<span>Hide</span>`
+      : `${EYE_OPEN_SVG}<span>Show</span>`;
   });
 }
 
@@ -1933,7 +1940,7 @@ async function onChangeEmailSubmit(e) {
   if (!user) {
     if (fb) {
       fb.className = 'simple-feedback-box feedback-error';
-      fb.textContent = 'Please sign into your account first to change email.';
+      fb.textContent = 'Error: Please sign into your account first to change email.';
     }
     return;
   }
@@ -1941,7 +1948,7 @@ async function onChangeEmailSubmit(e) {
   if (!newEmail || !newEmail.includes('@')) {
     if (fb) {
       fb.className = 'simple-feedback-box feedback-error';
-      fb.textContent = 'Please enter a valid email address.';
+      fb.textContent = 'Error: Please enter a valid email address.';
     }
     if (emailInput) emailInput.focus();
     return;
@@ -1950,7 +1957,7 @@ async function onChangeEmailSubmit(e) {
   if (!currentPassword) {
     if (fb) {
       fb.className = 'simple-feedback-box feedback-error';
-      fb.textContent = 'Please enter your current password to confirm.';
+      fb.textContent = 'Error: Please enter your current password to confirm.';
     }
     if (passInput) passInput.focus();
     return;
@@ -1973,7 +1980,7 @@ async function onChangeEmailSubmit(e) {
     if (res.ok) {
       if (fb) {
         fb.className = 'simple-feedback-box feedback-success';
-        fb.textContent = `✓ Email address updated successfully to ${res.email}!`;
+        fb.textContent = `Success: Email address updated to ${res.email}.`;
       }
       if (emailInput) emailInput.value = '';
       if (passInput) passInput.value = '';
@@ -1983,13 +1990,13 @@ async function onChangeEmailSubmit(e) {
     } else {
       if (fb) {
         fb.className = 'simple-feedback-box feedback-error';
-        fb.textContent = `✗ ${res.error || 'Failed to update email address.'}`;
+        fb.textContent = `Error: ${res.error || 'Failed to update email address.'}`;
       }
     }
   } catch (err) {
     if (fb) {
       fb.className = 'simple-feedback-box feedback-error';
-      fb.textContent = `✗ Error: ${err.message}`;
+      fb.textContent = `Error: ${err.message}`;
     }
   } finally {
     if (btn) {
@@ -2072,7 +2079,7 @@ async function onChangePasswordSubmit(e) {
     if (res.ok) {
       if (fb) {
         fb.className = 'simple-feedback-box feedback-success';
-        fb.textContent = '✓ Password changed successfully! Encrypted in database.';
+        fb.textContent = 'Success: Password changed successfully in database.';
       }
       if (currentPassInput) currentPassInput.value = '';
       if (newPassInput) newPassInput.value = '';
@@ -2081,13 +2088,13 @@ async function onChangePasswordSubmit(e) {
     } else {
       if (fb) {
         fb.className = 'simple-feedback-box feedback-error';
-        fb.textContent = `✗ ${res.error || 'Failed to update password.'}`;
+        fb.textContent = `Error: ${res.error || 'Failed to update password.'}`;
       }
     }
   } catch (err) {
     if (fb) {
       fb.className = 'simple-feedback-box feedback-error';
-      fb.textContent = `✗ Error: ${err.message}`;
+      fb.textContent = `Error: ${err.message}`;
     }
   } finally {
     if (btn) {
@@ -2111,6 +2118,7 @@ async function onCheckForUpdates(simulate = false) {
   const lastChecked = document.getElementById('updateLastCheckedLabel');
   const iconWrapper = document.getElementById('updateStatusIconWrapper');
   const foundDetails = document.getElementById('updateFoundDetails');
+  const dlBtn = document.getElementById('downloadUpdateBtn');
 
   if (btnIcon) btnIcon.classList.add('spinning');
   if (btnText) btnText.textContent = 'Checking...';
@@ -2121,43 +2129,85 @@ async function onCheckForUpdates(simulate = false) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     if (lastChecked) lastChecked.textContent = `Last checked: Today at ${timeStr}`;
 
-    if (res.hasUpdate) {
-      activeUpdatePayload = res;
-      if (headline) headline.textContent = `Update Available: v${res.latestVersion}`;
-      if (subtext) subtext.textContent = `A newer release (${res.releaseName || 'v' + res.latestVersion}) is published on GitHub.`;
-      if (iconWrapper) {
-        iconWrapper.className = 'update-status-icon-wrapper icon-update';
-      }
+    if (!res.ok) {
+      if (headline) headline.textContent = 'Update check failed';
+      if (subtext) subtext.textContent = `Error: ${res.error || 'Failed to connect to GitHub releases.'}`;
+      showToast('Failed to connect to GitHub releases');
+      return;
+    }
 
+    activeUpdatePayload = res;
+
+    if (res.hasUpdate) {
+      if (headline) headline.textContent = `Update Available: v${res.latestVersion}`;
+      if (subtext) subtext.textContent = `A newer release (${res.releaseName || 'v' + res.latestVersion}) is published on GitHub. (Installed: v${res.currentVersion})`;
+      if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-update';
+      if (dlBtn) dlBtn.textContent = 'Download Update (.exe)';
       if (foundDetails) {
         foundDetails.classList.remove('hidden');
         const verTag = document.getElementById('updateFoundVersionTag');
         if (verTag) verTag.textContent = `v${res.latestVersion}`;
         const dateTag = document.getElementById('updateFoundDate');
         if (dateTag && res.publishedAt) {
-          dateTag.textContent = new Date(res.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+          dateTag.textContent = ' • ' + new Date(res.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         }
         const sizeTag = document.getElementById('updateFoundSize');
-        if (sizeTag) sizeTag.textContent = res.assetSize || 'Release Package';
+        if (sizeTag) sizeTag.textContent = res.assetSize ? ` • ${res.assetSize}` : '';
         const titleTag = document.getElementById('updateFoundTitle');
         if (titleTag) titleTag.textContent = res.releaseName || `Lab Inventory v${res.latestVersion}`;
         const changelog = document.getElementById('updateFoundChangelog');
         if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
       }
       showToast(`New update available: v${res.latestVersion}`);
-    } else {
+    } else if (res.isAhead) {
+      if (headline) headline.textContent = `Up to Date (Installed: v${res.currentVersion})`;
+      if (subtext) subtext.textContent = `Your installed version (v${res.currentVersion}) is ahead of the latest public GitHub release (v${res.latestVersion}).`;
+      if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
+      if (dlBtn) dlBtn.textContent = `Download Release v${res.latestVersion} (.exe)`;
+      if (foundDetails) {
+        foundDetails.classList.remove('hidden');
+        const verTag = document.getElementById('updateFoundVersionTag');
+        if (verTag) verTag.textContent = `v${res.latestVersion}`;
+        const dateTag = document.getElementById('updateFoundDate');
+        if (dateTag && res.publishedAt) {
+          dateTag.textContent = ' • ' + new Date(res.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        const sizeTag = document.getElementById('updateFoundSize');
+        if (sizeTag) sizeTag.textContent = res.assetSize ? ` • ${res.assetSize}` : '';
+        const titleTag = document.getElementById('updateFoundTitle');
+        if (titleTag) titleTag.textContent = `Latest GitHub Release: ${res.releaseName || 'v' + res.latestVersion}`;
+        const changelog = document.getElementById('updateFoundChangelog');
+        if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
+      }
+      showToast(`Installed v${res.currentVersion} is newer than GitHub release v${res.latestVersion}`);
+    } else if (res.noReleases) {
       activeUpdatePayload = null;
       if (foundDetails) foundDetails.classList.add('hidden');
-      if (iconWrapper) {
-        iconWrapper.className = 'update-status-icon-wrapper icon-ok';
-      }
+      if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
+      if (headline) headline.textContent = 'No Releases Published Yet';
+      if (subtext) subtext.textContent = `Connected to repository AhmedAbo-Eita/Electronics_Lab_Inventory. Current build: v${res.currentVersion}.`;
+      showToast('No GitHub releases found yet');
+    } else {
       if (headline) headline.textContent = 'You are up to date!';
-      if (subtext) {
-        subtext.textContent = res.noReleases
-          ? `Current version: v${res.currentVersion} • No GitHub releases published yet.`
-          : `Current version: v${res.currentVersion} is the latest release on GitHub.`;
+      if (subtext) subtext.textContent = `Installed version v${res.currentVersion} matches the latest release on GitHub (v${res.latestVersion}).`;
+      if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
+      if (dlBtn) dlBtn.textContent = `Re-download Release v${res.latestVersion} (.exe)`;
+      if (foundDetails) {
+        foundDetails.classList.remove('hidden');
+        const verTag = document.getElementById('updateFoundVersionTag');
+        if (verTag) verTag.textContent = `v${res.latestVersion}`;
+        const dateTag = document.getElementById('updateFoundDate');
+        if (dateTag && res.publishedAt) {
+          dateTag.textContent = ' • ' + new Date(res.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        const sizeTag = document.getElementById('updateFoundSize');
+        if (sizeTag) sizeTag.textContent = res.assetSize ? ` • ${res.assetSize}` : '';
+        const titleTag = document.getElementById('updateFoundTitle');
+        if (titleTag) titleTag.textContent = res.releaseName || `Lab Inventory v${res.latestVersion}`;
+        const changelog = document.getElementById('updateFoundChangelog');
+        if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
       }
-      showToast(res.noReleases ? 'No GitHub releases found yet' : 'Application is up to date');
+      showToast('Application is up to date');
     }
   } catch (err) {
     if (headline) headline.textContent = 'Update check failed';
@@ -2212,13 +2262,13 @@ async function onDownloadUpdate() {
 
     if (res.ok) {
       latestDownloadedFilePath = res.filePath;
-      if (progressText) progressText.textContent = `✓ Download complete! Saved to Downloads: ${res.fileName}`;
+      if (progressText) progressText.textContent = `Success: Download complete. Saved to Downloads: ${res.fileName}`;
       if (progressBar) progressBar.style.width = '100%';
       if (progressPercent) progressPercent.textContent = '100%';
       if (openFileBtn) openFileBtn.classList.remove('hidden');
       showToast(`Installer downloaded: ${res.fileName}`);
     } else {
-      if (progressText) progressText.textContent = `Download failed: ${res.error}`;
+      if (progressText) progressText.textContent = `Error: Download failed - ${res.error}`;
       showToast('Download error: ' + res.error);
     }
   } catch (err) {
@@ -2278,10 +2328,10 @@ async function onTestDatabaseConnection() {
   feedback.classList.remove('hidden');
   if (res.online) {
     feedback.className = 'db-feedback-box feedback-success';
-    feedback.textContent = '✓ ' + (res.message || 'Connected successfully to MySQL server!');
+    feedback.textContent = 'Success: ' + (res.message || 'Connected successfully to MySQL server.');
   } else {
     feedback.className = 'db-feedback-box feedback-error';
-    feedback.textContent = '✗ ' + (res.message || 'Connection failed. Check host, port, credentials, and firewall.');
+    feedback.textContent = 'Error: ' + (res.message || 'Connection failed. Check host, port, credentials, and firewall.');
   }
 }
 

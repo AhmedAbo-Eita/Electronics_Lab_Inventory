@@ -785,7 +785,10 @@
                     <label for="changeEmailPasswordInput">Current Password</label>
                     <div class="simple-pass-input-wrapper">
                       <input type="password" id="changeEmailPasswordInput" placeholder="Current password" autocomplete="current-password" required />
-                      <button type="button" class="simple-pass-toggle-btn" id="toggleChangeEmailPassBtn">Show</button>
+                      <button type="button" class="simple-pass-toggle-btn" id="toggleChangeEmailPassBtn" aria-label="Show password">
+                        <svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>Show</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -805,7 +808,10 @@
                   <label for="changePassCurrentInput">Current Password</label>
                   <div class="simple-pass-input-wrapper">
                     <input type="password" id="changePassCurrentInput" placeholder="Enter current password" autocomplete="current-password" required />
-                    <button type="button" class="simple-pass-toggle-btn" id="togglePassCurrentBtn">Show</button>
+                    <button type="button" class="simple-pass-toggle-btn" id="togglePassCurrentBtn" aria-label="Show password">
+                      <svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      <span>Show</span>
+                    </button>
                   </div>
                 </div>
                 <div class="simple-form-row">
@@ -813,14 +819,20 @@
                     <label for="changePassNewInput">New Password</label>
                     <div class="simple-pass-input-wrapper">
                       <input type="password" id="changePassNewInput" placeholder="At least 4 characters" autocomplete="new-password" required />
-                      <button type="button" class="simple-pass-toggle-btn" id="togglePassNewBtn">Show</button>
+                      <button type="button" class="simple-pass-toggle-btn" id="togglePassNewBtn" aria-label="Show password">
+                        <svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>Show</span>
+                      </button>
                     </div>
                   </div>
                   <div class="field-group">
                     <label for="changePassConfirmInput">Confirm New Password</label>
                     <div class="simple-pass-input-wrapper">
                       <input type="password" id="changePassConfirmInput" placeholder="Re-type new password" autocomplete="new-password" required />
-                      <button type="button" class="simple-pass-toggle-btn" id="togglePassConfirmBtn">Show</button>
+                      <button type="button" class="simple-pass-toggle-btn" id="togglePassConfirmBtn" aria-label="Show password">
+                        <svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>Show</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -925,7 +937,10 @@
                   <label for="dbPasswordInput">Password</label>
                   <div class="simple-pass-input-wrapper">
                     <input type="password" id="dbPasswordInput" placeholder="••••••••" autocomplete="new-password" />
-                    <button type="button" class="simple-pass-toggle-btn" id="toggleDbPasswordBtn">Show</button>
+                    <button type="button" class="simple-pass-toggle-btn" id="toggleDbPasswordBtn" aria-label="Show password">
+                      <svg class="pass-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      <span>Show</span>
+                    </button>
                   </div>
                 </div>
               </form>
@@ -966,10 +981,6 @@
                 <div class="simple-info-row">
                   <span class="simple-info-label">Developer:</span>
                   <span>Ahmed Aboeita</span>
-                </div>
-                <div class="simple-info-row">
-                  <span class="simple-info-label">License:</span>
-                  <span>MIT License</span>
                 </div>
                 <div class="simple-info-row">
                   <span class="simple-info-label">Environment:</span>

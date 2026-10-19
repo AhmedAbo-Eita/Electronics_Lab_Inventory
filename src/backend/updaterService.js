@@ -160,7 +160,12 @@ async function checkForUpdates(options = {}) {
 
     const latest = validReleases[0];
     const latestTag = latest.tag_name || latest.name || '';
-    const hasUpdate = compareSemver(latestTag, currentVersion) > 0;
+    const cleanLatest = latestTag.replace(/^[vV]/, '');
+    const cleanCurrent = String(currentVersion || '2.1.1').replace(/^[vV]/, '');
+    const cmp = compareSemver(cleanLatest, cleanCurrent);
+    const hasUpdate = cmp > 0;
+    const isAhead = cmp < 0;
+    const isMatching = cmp === 0;
 
     // Look for Windows executable installer in assets
     let assetName = '';
@@ -179,8 +184,10 @@ async function checkForUpdates(options = {}) {
     return {
       ok: true,
       hasUpdate,
-      currentVersion,
-      latestVersion: latestTag.replace(/^[vV]/, ''),
+      isAhead,
+      isMatching,
+      currentVersion: cleanCurrent,
+      latestVersion: cleanLatest,
       releaseName: latest.name || latestTag,
       releaseNotes: latest.body || 'No release notes provided.',
       publishedAt: latest.published_at,
