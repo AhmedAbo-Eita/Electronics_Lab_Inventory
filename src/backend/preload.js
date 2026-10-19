@@ -154,9 +154,67 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCurrentUser: () => ipcRenderer.invoke('auth:get-current-user'),
 
   /**
-   * Logs out current session user.
+   * Updates user email address.
    */
-  logoutUser: () => ipcRenderer.invoke('auth:logout'),
+  updateUserEmail: (payload) => ipcRenderer.invoke('auth:update-email', payload),
+
+  /**
+   * Updates user password.
+   */
+  updateUserPassword: (payload) => ipcRenderer.invoke('auth:update-password', payload),
+
+  /**
+   * Loads general application settings.
+   */
+  getAppSettings: () => ipcRenderer.invoke('app:get-settings'),
+
+  /**
+   * Saves general application settings.
+   */
+  saveAppSettings: (settings) => ipcRenderer.invoke('app:save-settings', settings),
+
+  /**
+   * Retrieves Windows auto-start setting.
+   */
+  getAutoStart: () => ipcRenderer.invoke('app:get-auto-start'),
+
+  /**
+   * Configures Windows auto-start setting.
+   */
+  setAutoStart: (openAtLogin) => ipcRenderer.invoke('app:set-auto-start', openAtLogin),
+
+  /**
+   * Checks GitHub releases for application updates.
+   */
+  checkForUpdates: (options) => ipcRenderer.invoke('app:check-for-updates', options),
+
+  /**
+   * Downloads a release update asset to the user's Downloads folder.
+   */
+  downloadUpdate: (payload) => ipcRenderer.invoke('app:download-update', payload),
+
+  /**
+   * Subscribes to release download progress events.
+   * @param {(progress: { percent: number, transferred: number, total: number }) => void} callback
+   */
+  onUpdateDownloadProgress: (callback) => {
+    ipcRenderer.on('app:update-download-progress', (_event, progress) => callback(progress));
+  },
+
+  /**
+   * Opens or highlights a downloaded file on disk.
+   */
+  openDownloadedFile: (filePath) => ipcRenderer.invoke('app:open-downloaded-file', filePath),
+
+  /**
+   * Safely opens an external URL in the user's default browser.
+   */
+  openExternalUrl: (url) => ipcRenderer.invoke('app:open-external', url),
+
+  /**
+   * Retrieves application and runtime system information.
+   */
+  getSystemInfo: () => ipcRenderer.invoke('app:get-system-info'),
 
   /**
    * Records an inventory change in the audit log.

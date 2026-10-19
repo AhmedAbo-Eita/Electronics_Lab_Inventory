@@ -604,6 +604,57 @@ async function updateUserLoginFailure(username) {
 }
 
 /**
+ * Updates a user's registered email address.
+ * @param {string} username
+ * @param {string} newEmail
+ */
+async function updateUserEmail(username, newEmail) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  const cleanEmail = String(newEmail || '').trim().toLowerCase();
+  if (!clean || !cleanEmail) {
+    return { ok: false, error: 'Username and new email are required.' };
+  }
+
+  try {
+    const stmt = activeDb.prepare(
+      `UPDATE lab_users SET email = ? WHERE username = ? COLLATE NOCASE;`
+    );
+    stmt.run([cleanEmail, clean]);
+    stmt.free();
+    flushToDisk(activeDb);
+    return { ok: true, email: cleanEmail };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Updates a user's password hash.
+ * @param {string} username
+ * @param {string} newPasswordHash
+ */
+async function updateUserPassword(username, newPasswordHash) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  if (!clean || !newPasswordHash) {
+    return { ok: false, error: 'Username and new password hash are required.' };
+  }
+
+  try {
+    const stmt = activeDb.prepare(
+      `UPDATE lab_users SET password_hash = ? WHERE username = ? COLLATE NOCASE;`
+    );
+    stmt.run([newPasswordHash, clean]);
+    stmt.free();
+    flushToDisk(activeDb);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Inserts a new inventory change audit record.
  */
 async function insertAuditLog({ username, actionType, mpn = '', changeDetails }) {
@@ -717,6 +768,8 @@ module.exports = {
   createUser,
   updateUserLoginSuccess,
   updateUserLoginFailure,
+  updateUserEmail,
+  updateUserPassword,
   insertAuditLog,
   getAuditLogs
 };

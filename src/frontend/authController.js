@@ -549,6 +549,14 @@
     if (dom.authLogoutBtn) {
       dom.authLogoutBtn.addEventListener('click', handleLogout);
     }
+    if (dom.authUserChip) {
+      dom.authUserChip.style.cursor = 'pointer';
+      dom.authUserChip.addEventListener('click', () => {
+        if (typeof window.openSettingsModal === 'function') {
+          window.openSettingsModal('account');
+        }
+      });
+    }
     if (dom.openAuditHistoryBtn) {
       dom.openAuditHistoryBtn.addEventListener('click', openAuditHistoryModal);
     }

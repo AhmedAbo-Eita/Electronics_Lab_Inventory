@@ -8,13 +8,15 @@
  *   - Window state controls & native message boxes
  */
 
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, app, shell } = require('electron');
 const path = require('path');
 const sqliteDb = require('./sqliteDatabase');
 const mysqlClient = require('./mysqlClient');
 const spreadsheetHelper = require('./spreadsheetHelper');
 const authService = require('./authService');
 const auditLogger = require('./auditLogger');
+const appSettings = require('./appSettings');
+const updaterService = require('./updaterService');
 
 /**
  * Registers all application IPC handlers.
@@ -301,7 +303,7 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
     return authService.loginUser(credentials);
   });
 
-  ipcMain.handle('auth:get-current-user', () => {
+  ipcMain.handle('auth:get-current-user', async () => {
     return authService.getCurrentUser();
   });
 
@@ -309,8 +311,76 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
     return authService.logoutUser();
   });
 
+  ipcMain.handle('auth:update-email', async (_event, payload) => {
+    return authService.changeUserEmail(payload);
+  });
+
+  ipcMain.handle('auth:update-password', async (_event, payload) => {
+    return authService.changeUserPassword(payload);
+  });
+
   // --------------------------------------------------------------------------
-  // 5. Inventory Change Audit History
+  // 5. Application Preferences & Startup Settings
+  // --------------------------------------------------------------------------
+
+  ipcMain.handle('app:get-settings', () => {
+    return appSettings.loadSettings();
+  });
+
+  ipcMain.handle('app:save-settings', (_event, newSettings) => {
+    return appSettings.saveSettings(newSettings);
+  });
+
+  ipcMain.handle('app:get-auto-start', () => {
+    return appSettings.getAutoStart();
+  });
+
+  ipcMain.handle('app:set-auto-start', (_event, openAtLogin) => {
+    return appSettings.setAutoStart(openAtLogin);
+  });
+
+  // --------------------------------------------------------------------------
+  // 6. Application Updates & GitHub Repository Release Engine
+  // --------------------------------------------------------------------------
+
+  ipcMain.handle('app:check-for-updates', async (_event, options) => {
+    return updaterService.checkForUpdates(options);
+  });
+
+  ipcMain.handle('app:download-update', async (event, payload) => {
+    return updaterService.downloadReleaseAsset(payload, (progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('app:update-download-progress', progress);
+      }
+    });
+  });
+
+  ipcMain.handle('app:open-downloaded-file', (_event, filePath) => {
+    return updaterService.openDownloadedFile(filePath);
+  });
+
+  ipcMain.handle('app:open-external', (_event, url) => {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url);
+      return { ok: true };
+    }
+    return { ok: false, error: 'Invalid URL' };
+  });
+
+  ipcMain.handle('app:get-system-info', () => {
+    return {
+      appName: 'Lab Inventory',
+      appVersion: app ? app.getVersion() : '2.0.0',
+      electronVersion: process.versions.electron || '33.2.0',
+      chromeVersion: process.versions.chrome || '130.0',
+      nodeVersion: process.versions.node || '20.18',
+      platform: process.platform,
+      arch: process.arch
+    };
+  });
+
+  // --------------------------------------------------------------------------
+  // 7. Inventory Change Audit History
   // --------------------------------------------------------------------------
 
   ipcMain.handle('audit:log-change', async (_event, payload) => {

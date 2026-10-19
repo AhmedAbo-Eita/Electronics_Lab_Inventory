@@ -1683,13 +1683,101 @@ function applyTheme(preference, notify = false) {
   }
 }
 
-async function openDatabaseModal() {
-  const modal = document.getElementById('dbSettingsModal');
-  const feedback = document.getElementById('dbTestFeedback');
-  feedback.className = 'db-feedback-box hidden';
-  feedback.textContent = '';
+// ============================================================================
+// Multi-Tab Application Settings System (Antigravity Modern Style)
+// ============================================================================
 
-  // Synchronize current theme selection & Windows detection badge
+let currentSettingsTab = 'account';
+let activeUpdatePayload = null;
+let latestDownloadedFilePath = null;
+
+/**
+ * Switches the active settings panel and updates the navigation sidebar.
+ * @param {'account' | 'preferences' | 'database' | 'about'} tabKey
+ */
+function switchSettingsTab(tabKey) {
+  const tabs = ['account', 'preferences', 'database', 'about'];
+  if (!tabs.includes(tabKey)) tabKey = 'account';
+  currentSettingsTab = tabKey;
+
+  tabs.forEach((key) => {
+    const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
+    const btn = document.getElementById(`settingsTabBtn${capitalized}`);
+    const panel = document.getElementById(`settingsPanel${capitalized}`);
+
+    const isActive = (key === tabKey);
+    if (btn) {
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    }
+    if (panel) {
+      panel.classList.toggle('active', isActive);
+    }
+  });
+}
+
+/**
+ * Updates Account Tab information from session state.
+ */
+async function refreshAccountTab() {
+  const usernameLabel = document.getElementById('settingsAccountUsername');
+  const emailLabel = document.getElementById('settingsAccountEmail');
+  const statusBadge = document.getElementById('settingsAccountStatusBadge');
+  const lastLoginLabel = document.getElementById('settingsAccountLastLogin');
+  const avatarInitials = document.getElementById('settingsAvatarInitials');
+
+  let user = null;
+  if (window.authController && typeof window.authController.getCurrentUser === 'function') {
+    user = window.authController.getCurrentUser();
+  }
+  if (!user && window.electronAPI && window.electronAPI.getCurrentUser) {
+    try {
+      user = await window.electronAPI.getCurrentUser();
+    } catch {}
+  }
+
+  if (user) {
+    if (usernameLabel) usernameLabel.textContent = user.username;
+    if (emailLabel) emailLabel.textContent = user.email || 'No email registered';
+    if (statusBadge) {
+      statusBadge.textContent = 'Active Session';
+      statusBadge.className = 'account-status-badge badge-active';
+    }
+    if (avatarInitials) {
+      avatarInitials.textContent = (user.username || 'U').charAt(0).toUpperCase();
+    }
+    if (lastLoginLabel) {
+      lastLoginLabel.textContent = user.lastLogin ? `Last login: ${user.lastLogin}` : 'Current session';
+    }
+  } else {
+    if (usernameLabel) usernameLabel.textContent = 'Guest / Anonymous';
+    if (emailLabel) emailLabel.textContent = 'No account logged in';
+    if (statusBadge) {
+      statusBadge.textContent = 'Not Authenticated';
+      statusBadge.className = 'account-status-badge badge-offline';
+    }
+    if (avatarInitials) avatarInitials.textContent = '?';
+    if (lastLoginLabel) lastLoginLabel.textContent = 'Sign in or register to protect your data';
+  }
+
+  // Clear feedback boxes
+  const emailFb = document.getElementById('changeEmailFeedback');
+  if (emailFb) {
+    emailFb.className = 'settings-feedback-box hidden';
+    emailFb.textContent = '';
+  }
+  const passFb = document.getElementById('changePassFeedback');
+  if (passFb) {
+    passFb.className = 'settings-feedback-box hidden';
+    passFb.textContent = '';
+  }
+}
+
+/**
+ * Updates Preferences Tab controls (theme tiles, windows startup, auto-login).
+ */
+async function refreshPreferencesTab() {
+  // Sync Theme
   updateSystemThemeBadge();
   let currentPref = 'system';
   try {
@@ -1702,21 +1790,461 @@ async function openDatabaseModal() {
   if (radioDark) radioDark.checked = (currentPref === 'dark');
   if (radioLight) radioLight.checked = (currentPref === 'light');
 
-  const cfg = await window.electronAPI.getMySQLConfig();
-  document.getElementById('dbEnableSyncToggle').checked = Boolean(cfg.enabled);
-  document.getElementById('dbHostInput').value = cfg.host || 'localhost';
-  document.getElementById('dbPortInput').value = cfg.port || 3306;
-  document.getElementById('dbNameInput').value = cfg.database || 'lab_inventory_db';
-  document.getElementById('dbUserInput').value = cfg.user || 'root';
-  document.getElementById('dbPasswordInput').value = cfg.password || '';
+  // Sync Startup & Auto-login
+  if (window.electronAPI) {
+    if (window.electronAPI.getAutoStart) {
+      try {
+        const autoStart = await window.electronAPI.getAutoStart();
+        const startupToggle = document.getElementById('launchAtStartupToggle');
+        if (startupToggle) startupToggle.checked = Boolean(autoStart.openAtLogin);
+      } catch (err) {
+        console.warn('Failed to load auto start:', err);
+      }
+    }
+
+    if (window.electronAPI.getAppSettings) {
+      try {
+        const settings = await window.electronAPI.getAppSettings();
+        const autoLoginToggle = document.getElementById('autoLoginToggle');
+        if (autoLoginToggle) autoLoginToggle.checked = Boolean(settings.autoLogin);
+        const updatesToggle = document.getElementById('checkUpdatesStartupToggle');
+        if (updatesToggle && settings.checkUpdatesOnStartup !== undefined) {
+          updatesToggle.checked = Boolean(settings.checkUpdatesOnStartup);
+        }
+      } catch (err) {
+        console.warn('Failed to load app settings:', err);
+      }
+    }
+  }
+}
+
+/**
+ * Updates About Tab info (version, runtime specs).
+ */
+async function refreshAboutTab() {
+  if (window.electronAPI && window.electronAPI.getSystemInfo) {
+    try {
+      const info = await window.electronAPI.getSystemInfo();
+      const badge = document.getElementById('aboutAppVersionBadge');
+      if (badge && info.appVersion) badge.textContent = `v${info.appVersion}`;
+
+      const chipsGrid = document.getElementById('systemInfoChipsGrid');
+      if (chipsGrid) {
+        chipsGrid.innerHTML = `
+          <div class="runtime-chip"><span class="chip-label">App:</span><span class="chip-val">v${info.appVersion}</span></div>
+          <div class="runtime-chip"><span class="chip-label">Electron:</span><span class="chip-val">v${info.electronVersion}</span></div>
+          <div class="runtime-chip"><span class="chip-label">Chromium:</span><span class="chip-val">v${info.chromeVersion}</span></div>
+          <div class="runtime-chip"><span class="chip-label">Node:</span><span class="chip-val">v${info.nodeVersion}</span></div>
+          <div class="runtime-chip"><span class="chip-label">Platform:</span><span class="chip-val">${info.platform} (${info.arch})</span></div>
+          <div class="runtime-chip"><span class="chip-label">Database:</span><span class="chip-val">SQLite 3 / MySQL</span></div>
+        `;
+      }
+    } catch (err) {
+      console.warn('Failed to load system info:', err);
+    }
+  }
+}
+
+/**
+ * Opens the main multi-tab Application Settings modal.
+ * @param {'account' | 'preferences' | 'database' | 'about'} [preferredTab='account']
+ */
+async function openSettingsModal(preferredTab = 'account') {
+  const modal = document.getElementById('dbSettingsModal');
+  if (!modal) return;
+
+  switchSettingsTab(preferredTab);
+
+  // Refresh active tab views
+  await refreshAccountTab();
+  await refreshPreferencesTab();
+  await refreshAboutTab();
+
+  // Load MySQL Configuration into Database Tab
+  if (window.electronAPI && window.electronAPI.getMySQLConfig) {
+    try {
+      const cfg = await window.electronAPI.getMySQLConfig();
+      const syncToggle = document.getElementById('dbEnableSyncToggle');
+      if (syncToggle) syncToggle.checked = Boolean(cfg.enabled);
+      const hostInput = document.getElementById('dbHostInput');
+      if (hostInput) hostInput.value = cfg.host || 'localhost';
+      const portInput = document.getElementById('dbPortInput');
+      if (portInput) portInput.value = cfg.port || 3306;
+      const nameInput = document.getElementById('dbNameInput');
+      if (nameInput) nameInput.value = cfg.database || 'lab_inventory_db';
+      const userInput = document.getElementById('dbUserInput');
+      if (userInput) userInput.value = cfg.user || 'root';
+      const passInput = document.getElementById('dbPasswordInput');
+      if (passInput) passInput.value = cfg.password || '';
+    } catch (err) {
+      console.warn('Failed to load MySQL config:', err);
+    }
+  }
 
   await refreshDatabaseStatus();
   modal.classList.remove('hidden');
 }
 
+/**
+ * Alias for backward compatibility with database sync triggers
+ */
+function openDatabaseModal() {
+  return openSettingsModal('database');
+}
+
 function closeDatabaseModal() {
   const modal = document.getElementById('dbSettingsModal');
-  modal.classList.add('hidden');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Helper to wire up password eye show/hide toggle buttons
+ */
+function setupPasswordToggle(btnId, inputId) {
+  const btn = document.getElementById(btnId);
+  const input = document.getElementById(inputId);
+  if (!btn || !input) return;
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    btn.innerHTML = isPass
+      ? `<svg class="eye-closed" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+      : `<svg class="eye-open" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  });
+}
+
+/**
+ * Handles Account Tab: Change Email Submission
+ */
+async function onChangeEmailSubmit() {
+  const emailInput = document.getElementById('changeEmailInput');
+  const passInput = document.getElementById('changeEmailPasswordInput');
+  const fb = document.getElementById('changeEmailFeedback');
+  const btn = document.getElementById('changeEmailSubmitBtn');
+
+  const newEmail = (emailInput ? emailInput.value : '').trim();
+  const currentPassword = passInput ? passInput.value : '';
+
+  let user = window.authController ? window.authController.getCurrentUser() : null;
+  if (!user && window.electronAPI && window.electronAPI.getCurrentUser) {
+    user = await window.electronAPI.getCurrentUser();
+  }
+  if (!user) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'Please sign into your account first to change email.';
+    }
+    return;
+  }
+
+  if (!newEmail || !newEmail.includes('@')) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'Please enter a valid email address.';
+    }
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  if (!currentPassword) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'Please enter your current password to confirm.';
+    }
+    if (passInput) passInput.focus();
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    const t = btn.querySelector('.btn-text');
+    if (t) t.textContent = 'Updating...';
+  }
+
+  try {
+    const res = await window.electronAPI.updateUserEmail({
+      username: user.username,
+      newEmail,
+      currentPassword
+    });
+
+    if (res.ok) {
+      if (fb) {
+        fb.className = 'settings-feedback-box feedback-success';
+        fb.textContent = `✓ Email address updated successfully to ${res.email}!`;
+      }
+      if (emailInput) emailInput.value = '';
+      if (passInput) passInput.value = '';
+      const emailLabel = document.getElementById('settingsAccountEmail');
+      if (emailLabel) emailLabel.textContent = res.email;
+      showToast('Email address updated successfully');
+    } else {
+      if (fb) {
+        fb.className = 'settings-feedback-box feedback-error';
+        fb.textContent = `✗ ${res.error || 'Failed to update email address.'}`;
+      }
+    }
+  } catch (err) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = `✗ Error: ${err.message}`;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      const t = btn.querySelector('.btn-text');
+      if (t) t.textContent = 'Update Email';
+    }
+  }
+}
+
+/**
+ * Handles Account Tab: Change Password Submission
+ */
+async function onChangePasswordSubmit() {
+  const currentPassInput = document.getElementById('changePassCurrentInput');
+  const newPassInput = document.getElementById('changePassNewInput');
+  const confirmPassInput = document.getElementById('changePassConfirmInput');
+  const fb = document.getElementById('changePassFeedback');
+  const btn = document.getElementById('changePassSubmitBtn');
+
+  const currentPassword = currentPassInput ? currentPassInput.value : '';
+  const newPassword = newPassInput ? newPassInput.value : '';
+  const confirmPassword = confirmPassInput ? confirmPassInput.value : '';
+
+  let user = window.authController ? window.authController.getCurrentUser() : null;
+  if (!user && window.electronAPI && window.electronAPI.getCurrentUser) {
+    user = await window.electronAPI.getCurrentUser();
+  }
+  if (!user) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'Please sign into your account first to change password.';
+    }
+    return;
+  }
+
+  if (!currentPassword) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'Please enter your current password.';
+    }
+    if (currentPassInput) currentPassInput.focus();
+    return;
+  }
+
+  if (!newPassword || newPassword.length < 4) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'New password must be at least 4 characters long.';
+    }
+    if (newPassInput) newPassInput.focus();
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = 'New passwords do not match. Please re-type.';
+    }
+    if (confirmPassInput) confirmPassInput.focus();
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    const t = btn.querySelector('.btn-text');
+    if (t) t.textContent = 'Updating...';
+  }
+
+  try {
+    const res = await window.electronAPI.updateUserPassword({
+      username: user.username,
+      currentPassword,
+      newPassword
+    });
+
+    if (res.ok) {
+      if (fb) {
+        fb.className = 'settings-feedback-box feedback-success';
+        fb.textContent = '✓ Password changed successfully! Encrypted in database.';
+      }
+      if (currentPassInput) currentPassInput.value = '';
+      if (newPassInput) newPassInput.value = '';
+      if (confirmPassInput) confirmPassInput.value = '';
+      showToast('Password updated successfully');
+    } else {
+      if (fb) {
+        fb.className = 'settings-feedback-box feedback-error';
+        fb.textContent = `✗ ${res.error || 'Failed to update password.'}`;
+      }
+    }
+  } catch (err) {
+    if (fb) {
+      fb.className = 'settings-feedback-box feedback-error';
+      fb.textContent = `✗ Error: ${err.message}`;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      const t = btn.querySelector('.btn-text');
+      if (t) t.textContent = 'Update Password';
+    }
+  }
+}
+
+/**
+ * Handles checking GitHub repository releases for software updates
+ */
+async function onCheckForUpdates(simulate = false) {
+  const btn = document.getElementById('checkForUpdatesBtn');
+  const btnIcon = document.getElementById('updateBtnIcon');
+  const btnText = document.getElementById('updateBtnText');
+  const headline = document.getElementById('updateStatusHeadline');
+  const subtext = document.getElementById('updateStatusSubtext');
+  const lastChecked = document.getElementById('updateLastCheckedLabel');
+  const iconWrapper = document.getElementById('updateStatusIconWrapper');
+  const foundDetails = document.getElementById('updateFoundDetails');
+
+  if (btnIcon) btnIcon.classList.add('spinning');
+  if (btnText) btnText.textContent = 'Checking...';
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await window.electronAPI.checkForUpdates({ simulate });
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (lastChecked) lastChecked.textContent = `Last checked: Today at ${timeStr}`;
+
+    if (res.hasUpdate) {
+      activeUpdatePayload = res;
+      if (headline) headline.textContent = `Update Available: v${res.latestVersion}`;
+      if (subtext) subtext.textContent = `A newer release (${res.releaseName || 'v' + res.latestVersion}) is published on GitHub.`;
+      if (iconWrapper) {
+        iconWrapper.className = 'update-status-icon-wrapper icon-update';
+      }
+
+      if (foundDetails) {
+        foundDetails.classList.remove('hidden');
+        const verTag = document.getElementById('updateFoundVersionTag');
+        if (verTag) verTag.textContent = `v${res.latestVersion}`;
+        const dateTag = document.getElementById('updateFoundDate');
+        if (dateTag && res.publishedAt) {
+          dateTag.textContent = new Date(res.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        const sizeTag = document.getElementById('updateFoundSize');
+        if (sizeTag) sizeTag.textContent = res.assetSize || 'Release Package';
+        const titleTag = document.getElementById('updateFoundTitle');
+        if (titleTag) titleTag.textContent = res.releaseName || `Lab Inventory v${res.latestVersion}`;
+        const changelog = document.getElementById('updateFoundChangelog');
+        if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
+      }
+      showToast(`New update available: v${res.latestVersion}`);
+    } else {
+      activeUpdatePayload = null;
+      if (foundDetails) foundDetails.classList.add('hidden');
+      if (iconWrapper) {
+        iconWrapper.className = 'update-status-icon-wrapper icon-ok';
+      }
+      if (headline) headline.textContent = 'You are up to date!';
+      if (subtext) {
+        subtext.textContent = res.noReleases
+          ? `Current version: v${res.currentVersion} • No GitHub releases published yet.`
+          : `Current version: v${res.currentVersion} is the latest release on GitHub.`;
+      }
+      showToast(res.noReleases ? 'No GitHub releases found yet' : 'Application is up to date');
+    }
+  } catch (err) {
+    if (headline) headline.textContent = 'Update check failed';
+    if (subtext) subtext.textContent = `Error: ${err.message}`;
+    showToast('Failed to connect to GitHub releases');
+  } finally {
+    if (btnIcon) btnIcon.classList.remove('spinning');
+    if (btnText) btnText.textContent = 'Check for Updates';
+    if (btn) btn.disabled = false;
+  }
+}
+
+/**
+ * Downloads the available update from GitHub releases with animated progress bar
+ */
+async function onDownloadUpdate() {
+  if (!activeUpdatePayload || !activeUpdatePayload.downloadUrl) {
+    showToast('No update download URL found');
+    return;
+  }
+
+  const dlBtn = document.getElementById('downloadUpdateBtn');
+  const progressWrapper = document.getElementById('updateDownloadProgressWrapper');
+  const progressBar = document.getElementById('updateProgressBar');
+  const progressPercent = document.getElementById('updateProgressPercent');
+  const progressText = document.getElementById('updateProgressText');
+  const openFileBtn = document.getElementById('openDownloadedFileBtn');
+
+  if (progressWrapper) progressWrapper.classList.remove('hidden');
+  if (progressBar) progressBar.style.width = '0%';
+  if (progressPercent) progressPercent.textContent = '0%';
+  if (progressText) progressText.textContent = 'Connecting to GitHub repository...';
+  if (dlBtn) dlBtn.disabled = true;
+
+  if (window.electronAPI && window.electronAPI.onUpdateDownloadProgress) {
+    window.electronAPI.onUpdateDownloadProgress((p) => {
+      if (progressBar) progressBar.style.width = `${p.percent}%`;
+      if (progressPercent) progressPercent.textContent = `${p.percent}%`;
+      if (progressText) {
+        const mb = (p.transferred / (1024 * 1024)).toFixed(1);
+        const totalMb = (p.total / (1024 * 1024)).toFixed(1);
+        progressText.textContent = `Downloading installer: ${mb} MB / ${totalMb} MB (${p.percent}%)`;
+      }
+    });
+  }
+
+  try {
+    const res = await window.electronAPI.downloadUpdate({
+      downloadUrl: activeUpdatePayload.downloadUrl,
+      assetName: activeUpdatePayload.assetName
+    });
+
+    if (res.ok) {
+      latestDownloadedFilePath = res.filePath;
+      if (progressText) progressText.textContent = `✓ Download complete! Saved to Downloads: ${res.fileName}`;
+      if (progressBar) progressBar.style.width = '100%';
+      if (progressPercent) progressPercent.textContent = '100%';
+      if (openFileBtn) openFileBtn.classList.remove('hidden');
+      showToast(`Installer downloaded: ${res.fileName}`);
+    } else {
+      if (progressText) progressText.textContent = `Download failed: ${res.error}`;
+      showToast('Download error: ' + res.error);
+    }
+  } catch (err) {
+    if (progressText) progressText.textContent = `Error: ${err.message}`;
+    showToast('Download failed');
+  } finally {
+    if (dlBtn) dlBtn.disabled = false;
+  }
+}
+
+/**
+ * Checks for updates quietly in background on launch if user has auto-check enabled
+ */
+async function checkUpdatesQuietlyOnStartup() {
+  if (!window.electronAPI || !window.electronAPI.getAppSettings || !window.electronAPI.checkForUpdates) return;
+  try {
+    const settings = await window.electronAPI.getAppSettings();
+    if (settings && settings.checkUpdatesOnStartup) {
+      const res = await window.electronAPI.checkForUpdates();
+      if (res && res.hasUpdate) {
+        showToast(`Update Available: Lab Inventory v${res.latestVersion}. Open Settings to install.`);
+        const openSettingsBtn = document.getElementById('openSettingsBtn');
+        if (openSettingsBtn) {
+          openSettingsBtn.classList.add('has-update-indicator');
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Quiet update check skipped:', err.message);
+  }
 }
 
 function getDatabaseFormValues() {
@@ -2185,28 +2713,159 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 13. Settings & Database Remote Sync Listeners
+  // 13. Settings & Multi-Tab Configuration Listeners
   const openSettingsBtn = document.getElementById('openSettingsBtn');
   if (openSettingsBtn) {
-    openSettingsBtn.addEventListener('click', openDatabaseModal);
+    openSettingsBtn.addEventListener('click', () => openSettingsModal('account'));
   }
   const dbStatusPill = document.getElementById('dbStatusPill');
   if (dbStatusPill) {
-    dbStatusPill.addEventListener('click', openDatabaseModal);
+    dbStatusPill.addEventListener('click', () => openSettingsModal('database'));
   }
-  document.getElementById('dbModalCloseBtn').addEventListener('click', closeDatabaseModal);
-  document.getElementById('dbTestBtn').addEventListener('click', onTestDatabaseConnection);
-  document.getElementById('dbSaveBtn').addEventListener('click', onSaveDatabaseSettings);
-  document.getElementById('dbSyncBtn').addEventListener('click', syncDatabaseWithUI);
+
+  // Sidebar Tab Switchers
+  ['account', 'preferences', 'database', 'about'].forEach((tabKey) => {
+    const capitalized = tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
+    const btn = document.getElementById(`settingsTabBtn${capitalized}`);
+    if (btn) {
+      btn.addEventListener('click', () => switchSettingsTab(tabKey));
+    }
+  });
+
+  // Password Visibility Toggle Eyes
+  setupPasswordToggle('toggleChangeEmailPassBtn', 'changeEmailPasswordInput');
+  setupPasswordToggle('togglePassCurrentBtn', 'changePassCurrentInput');
+  setupPasswordToggle('togglePassNewBtn', 'changePassNewInput');
+  setupPasswordToggle('togglePassConfirmBtn', 'changePassConfirmInput');
+  setupPasswordToggle('toggleDbPasswordBtn', 'dbPasswordInput');
+
+  // Account Tab Listeners
+  const changeEmailForm = document.getElementById('settingsChangeEmailForm');
+  if (changeEmailForm) {
+    changeEmailForm.addEventListener('submit', onChangeEmailSubmit);
+  }
+  const changePasswordForm = document.getElementById('settingsChangePasswordForm');
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', onChangePasswordSubmit);
+  }
+  const settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
+  if (settingsSignOutBtn) {
+    settingsSignOutBtn.addEventListener('click', () => {
+      closeDatabaseModal();
+      const logoutBtn = document.getElementById('authLogoutBtn');
+      if (logoutBtn) logoutBtn.click();
+    });
+  }
+  const settingsOpenAuditBtn = document.getElementById('settingsOpenAuditBtn');
+  if (settingsOpenAuditBtn) {
+    settingsOpenAuditBtn.addEventListener('click', () => {
+      closeDatabaseModal();
+      if (window.authController && window.authController.openAuditHistory) {
+        window.authController.openAuditHistory();
+      }
+    });
+  }
+
+  // Preferences Tab Listeners
+  const startupToggle = document.getElementById('launchAtStartupToggle');
+  if (startupToggle) {
+    startupToggle.addEventListener('change', async (e) => {
+      if (window.electronAPI && window.electronAPI.setAutoStart) {
+        await window.electronAPI.setAutoStart(e.target.checked);
+        showToast(`Windows startup: ${e.target.checked ? 'Enabled' : 'Disabled'}`);
+      }
+    });
+  }
+  const autoLoginToggle = document.getElementById('autoLoginToggle');
+  if (autoLoginToggle) {
+    autoLoginToggle.addEventListener('change', async (e) => {
+      if (window.electronAPI && window.electronAPI.saveAppSettings) {
+        const user = window.authController ? window.authController.getCurrentUser() : null;
+        await window.electronAPI.saveAppSettings({
+          autoLogin: e.target.checked,
+          autoLoginUsername: e.target.checked && user ? user.username : ''
+        });
+        showToast(`Auto-login on startup: ${e.target.checked ? 'Enabled' : 'Disabled'}`);
+      }
+    });
+  }
+
+  // Database Tab Listeners
+  const modalCloseBtn = document.getElementById('dbModalCloseBtn');
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeDatabaseModal);
+  const testDbBtn = document.getElementById('dbTestBtn');
+  if (testDbBtn) testDbBtn.addEventListener('click', onTestDatabaseConnection);
+  const saveDbBtn = document.getElementById('dbSaveBtn');
+  if (saveDbBtn) saveDbBtn.addEventListener('click', onSaveDatabaseSettings);
+  const syncDbBtn = document.getElementById('dbSyncBtn');
+  if (syncDbBtn) syncDbBtn.addEventListener('click', syncDatabaseWithUI);
+
+  // About & Software Updates Listeners
+  const checkUpdatesBtn = document.getElementById('checkForUpdatesBtn');
+  if (checkUpdatesBtn) {
+    checkUpdatesBtn.addEventListener('click', () => onCheckForUpdates(false));
+  }
+  const simulateUpdateBtn = document.getElementById('simulateUpdateBtn');
+  if (simulateUpdateBtn) {
+    simulateUpdateBtn.addEventListener('click', () => onCheckForUpdates(true));
+  }
+  const downloadUpdateBtn = document.getElementById('downloadUpdateBtn');
+  if (downloadUpdateBtn) {
+    downloadUpdateBtn.addEventListener('click', onDownloadUpdate);
+  }
+  const openDownloadedFileBtn = document.getElementById('openDownloadedFileBtn');
+  if (openDownloadedFileBtn) {
+    openDownloadedFileBtn.addEventListener('click', () => {
+      if (latestDownloadedFilePath && window.electronAPI && window.electronAPI.openDownloadedFile) {
+        window.electronAPI.openDownloadedFile(latestDownloadedFilePath);
+      }
+    });
+  }
+  const viewReleaseGitHubBtn = document.getElementById('viewReleaseGitHubBtn');
+  if (viewReleaseGitHubBtn) {
+    viewReleaseGitHubBtn.addEventListener('click', () => {
+      const url = (activeUpdatePayload && activeUpdatePayload.htmlUrl) || 'https://github.com/AhmedAbo-Eita/Electronics_Lab_Inventory/releases';
+      if (window.electronAPI && window.electronAPI.openExternalUrl) {
+        window.electronAPI.openExternalUrl(url);
+      }
+    });
+  }
+  const checkUpdatesStartupToggle = document.getElementById('checkUpdatesStartupToggle');
+  if (checkUpdatesStartupToggle) {
+    checkUpdatesStartupToggle.addEventListener('change', async (e) => {
+      if (window.electronAPI && window.electronAPI.saveAppSettings) {
+        await window.electronAPI.saveAppSettings({ checkUpdatesOnStartup: e.target.checked });
+        showToast(`Auto update check: ${e.target.checked ? 'Enabled' : 'Disabled'}`);
+      }
+    });
+  }
+  const openRepoBtn = document.getElementById('openRepoBtn');
+  if (openRepoBtn) {
+    openRepoBtn.addEventListener('click', () => {
+      if (window.electronAPI && window.electronAPI.openExternalUrl) {
+        window.electronAPI.openExternalUrl('https://github.com/AhmedAbo-Eita/Electronics_Lab_Inventory');
+      }
+    });
+  }
+  const reportIssueBtn = document.getElementById('reportIssueBtn');
+  if (reportIssueBtn) {
+    reportIssueBtn.addEventListener('click', () => {
+      if (window.electronAPI && window.electronAPI.openExternalUrl) {
+        window.electronAPI.openExternalUrl('https://github.com/AhmedAbo-Eita/Electronics_Lab_Inventory/issues');
+      }
+    });
+  }
+
   document.getElementById('dbSettingsModal').addEventListener('click', (e) => {
     if (e.target.id === 'dbSettingsModal') {
       closeDatabaseModal();
     }
   });
 
-  // Check initial database sync status
+  // Check initial database sync status & quiet updates check
   await refreshDatabaseStatus();
   syncDatabaseQuietly();
+  setTimeout(checkUpdatesQuietlyOnStartup, 3500);
 
   // 14. Handle Close Guard with Unsaved Changes via In-App Material 3 Modal
   if (window.electronAPI && window.electronAPI.onPromptCloseSave) {
@@ -2254,4 +2913,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // Expose global methods for inter-module integration
+  window.openSettingsModal = openSettingsModal;
+  window.openDatabaseModal = openDatabaseModal;
+  window.switchSettingsTab = switchSettingsTab;
 });

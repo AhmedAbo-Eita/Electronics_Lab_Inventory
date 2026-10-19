@@ -11,6 +11,8 @@ data/*.sqlite
 data/*.sqlite3
 data/mysql_config.json
 mysql_config.json
+data/app_settings.json
+app_settings.json
 
 # Logs
 logs/
