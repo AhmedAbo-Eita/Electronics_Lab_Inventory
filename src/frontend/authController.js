@@ -81,6 +81,7 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+  window.escapeHtml = escapeHtml;
 
   /**
    * Formats a database datetime string into a readable local string.
@@ -91,9 +92,24 @@
   function formatAuditDate(dateStr) {
     if (!dateStr) return '—';
     try {
-      const utcString = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
-      const d = new Date(utcString);
-      if (isNaN(d.getTime())) return dateStr;
+      let d;
+      if (dateStr instanceof Date) {
+        d = dateStr;
+      } else if (typeof dateStr === 'string') {
+        const s = dateStr.trim();
+        // Standard SQLite/MySQL datetime "YYYY-MM-DD HH:MM:SS" is already recorded in local time.
+        // Replace space with 'T' without appending 'Z' to avoid accidental UTC double-shift.
+        if (/^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?$/.test(s)) {
+          d = new Date(s.replace(' ', 'T'));
+        } else {
+          d = new Date(s);
+        }
+      } else {
+        d = new Date(dateStr);
+      }
+
+      if (isNaN(d.getTime())) return String(dateStr);
+
       return d.toLocaleString(undefined, {
         year: 'numeric',
         month: '2-digit',
@@ -103,7 +119,7 @@
         second: '2-digit'
       });
     } catch {
-      return dateStr;
+      return String(dateStr);
     }
   }
 
@@ -672,6 +688,7 @@
     getCurrentUser: () => currentAuthUser,
     openAuditHistory: openAuditHistoryModal,
     loadAuditHistory,
-    setSessionUser
+    setSessionUser,
+    formatAuditDate
   };
 })();

@@ -114,6 +114,9 @@ function ensureSchema(db) {
       username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       email TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      can_delete_all INTEGER DEFAULT 0,
+      can_modify_inventory INTEGER DEFAULT 1,
       last_login DATETIME DEFAULT NULL,
       last_failed_login DATETIME DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -134,6 +137,11 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_audit_mpn ON inventory_audit_log(mpn);
   `;
   db.run(schemaSql);
+
+  // Schema migrations for role & permissions
+  try { db.run("ALTER TABLE lab_users ADD COLUMN role TEXT DEFAULT 'user';"); } catch {}
+  try { db.run("ALTER TABLE lab_users ADD COLUMN can_delete_all INTEGER DEFAULT 0;"); } catch {}
+  try { db.run("ALTER TABLE lab_users ADD COLUMN can_modify_inventory INTEGER DEFAULT 1;"); } catch {}
 }
 
 /**
@@ -505,19 +513,23 @@ async function getUserByUsername(username) {
   const clean = String(username || '').trim();
   if (!clean) return null;
 
-  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, last_login, last_failed_login, created_at FROM lab_users WHERE username = ? COLLATE NOCASE LIMIT 1;');
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, last_login, last_failed_login, created_at FROM lab_users WHERE username = ? COLLATE NOCASE LIMIT 1;');
   stmt.bind([clean]);
   let user = null;
   if (stmt.step()) {
     const row = stmt.get();
+    const isRootAdmin = String(row[1]).toLowerCase() === 'admin';
     user = {
       id: row[0],
       username: row[1],
       email: row[2],
       passwordHash: row[3],
-      lastLogin: row[4],
-      lastFailedLogin: row[5],
-      createdAt: row[6]
+      role: isRootAdmin ? 'admin' : (row[4] || 'user'),
+      canDeleteAll: isRootAdmin ? 1 : (row[5] ? 1 : 0),
+      canModifyInventory: isRootAdmin ? 1 : (row[6] !== undefined && row[6] !== null ? (row[6] ? 1 : 0) : 1),
+      lastLogin: row[7],
+      lastFailedLogin: row[8],
+      createdAt: row[9]
     };
   }
   stmt.free();
@@ -532,19 +544,23 @@ async function getUserByEmail(email) {
   const clean = String(email || '').trim().toLowerCase();
   if (!clean) return null;
 
-  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, last_login, last_failed_login, created_at FROM lab_users WHERE email = ? COLLATE NOCASE LIMIT 1;');
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, last_login, last_failed_login, created_at FROM lab_users WHERE email = ? COLLATE NOCASE LIMIT 1;');
   stmt.bind([clean]);
   let user = null;
   if (stmt.step()) {
     const row = stmt.get();
+    const isRootAdmin = String(row[1]).toLowerCase() === 'admin';
     user = {
       id: row[0],
       username: row[1],
       email: row[2],
       passwordHash: row[3],
-      lastLogin: row[4],
-      lastFailedLogin: row[5],
-      createdAt: row[6]
+      role: isRootAdmin ? 'admin' : (row[4] || 'user'),
+      canDeleteAll: isRootAdmin ? 1 : (row[5] ? 1 : 0),
+      canModifyInventory: isRootAdmin ? 1 : (row[6] !== undefined && row[6] !== null ? (row[6] ? 1 : 0) : 1),
+      lastLogin: row[7],
+      lastFailedLogin: row[8],
+      createdAt: row[9]
     };
   }
   stmt.free();
@@ -554,20 +570,33 @@ async function getUserByEmail(email) {
 /**
  * Creates a new user record in SQLite.
  */
-async function createUser({ username, email, passwordHash }) {
+async function createUser({ username, email, passwordHash, role = 'user', canDeleteAll = 0, canModifyInventory = 1 }) {
   if (!activeDb) await initSQLiteDatabase();
   const cleanUser = String(username || '').trim();
   const cleanEmail = String(email || '').trim().toLowerCase();
+  const isRootAdmin = cleanUser.toLowerCase() === 'admin';
+  const cleanRole = isRootAdmin ? 'admin' : String(role || 'user').trim().toLowerCase();
+  const cleanDeleteAll = isRootAdmin ? 1 : (canDeleteAll ? 1 : 0);
+  const cleanModify = isRootAdmin ? 1 : (canModifyInventory ? 1 : 0);
 
   try {
     const insertStmt = activeDb.prepare(`
-      INSERT INTO lab_users (username, email, password_hash, created_at)
-      VALUES (?, ?, ?, datetime('now', 'localtime'));
+      INSERT INTO lab_users (username, email, password_hash, role, can_delete_all, can_modify_inventory, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'));
     `);
-    insertStmt.run([cleanUser, cleanEmail, passwordHash]);
+    insertStmt.run([cleanUser, cleanEmail, passwordHash, cleanRole, cleanDeleteAll, cleanModify]);
     insertStmt.free();
     flushToDisk(activeDb);
-    return { ok: true, user: { username: cleanUser, email: cleanEmail } };
+    return {
+      ok: true,
+      user: {
+        username: cleanUser,
+        email: cleanEmail,
+        role: cleanRole,
+        canDeleteAll: cleanDeleteAll,
+        canModifyInventory: cleanModify
+      }
+    };
   } catch (err) {
     return { ok: false, error: err.message };
   }
@@ -655,11 +684,78 @@ async function updateUserPassword(username, newPasswordHash) {
 }
 
 /**
+ * Retrieves all registered users with their roles and permissions.
+ */
+async function getAllUsers() {
+  if (!activeDb) await initSQLiteDatabase();
+  const stmt = activeDb.prepare('SELECT id, username, email, role, can_delete_all, can_modify_inventory, last_login, created_at FROM lab_users ORDER BY id ASC;');
+  const users = [];
+  while (stmt.step()) {
+    const row = stmt.get();
+    const isRootAdmin = String(row[1]).toLowerCase() === 'admin';
+    users.push({
+      id: row[0],
+      username: row[1],
+      email: row[2],
+      role: isRootAdmin ? 'admin' : (row[3] || 'user'),
+      canDeleteAll: isRootAdmin ? 1 : (row[4] ? 1 : 0),
+      canModifyInventory: isRootAdmin ? 1 : (row[5] !== undefined && row[5] !== null ? (row[5] ? 1 : 0) : 1),
+      lastLogin: row[6],
+      createdAt: row[7]
+    });
+  }
+  stmt.free();
+  return users;
+}
+
+/**
+ * Updates permissions (can_delete_all, can_modify_inventory, role) for a user.
+ */
+async function updateUserPermissions(username, { role, canDeleteAll, canModifyInventory } = {}) {
+  if (!activeDb) await initSQLiteDatabase();
+  const clean = String(username || '').trim();
+  if (!clean) return { ok: false, error: 'Username is required.' };
+
+  const isRootAdmin = clean.toLowerCase() === 'admin';
+  let newRole = 'user';
+  if (isRootAdmin) {
+    newRole = 'admin';
+  } else if (role) {
+    newRole = String(role).trim().toLowerCase();
+  } else {
+    const existing = await getUserByUsername(clean);
+    newRole = existing && existing.role ? existing.role : 'user';
+  }
+  const newCanDelete = isRootAdmin ? 1 : (canDeleteAll ? 1 : 0);
+  const newCanModify = isRootAdmin ? 1 : (canModifyInventory ? 1 : 0);
+
+  try {
+    const stmt = activeDb.prepare(
+      `UPDATE lab_users SET role = ?, can_delete_all = ?, can_modify_inventory = ? WHERE username = ? COLLATE NOCASE;`
+    );
+    stmt.run([newRole, newCanDelete, newCanModify, clean]);
+    stmt.free();
+    flushToDisk(activeDb);
+    return {
+      ok: true,
+      user: {
+        username: clean,
+        role: newRole,
+        canDeleteAll: newCanDelete,
+        canModifyInventory: newCanModify
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Inserts a new inventory change audit record.
  */
 async function insertAuditLog({ username, actionType, mpn = '', changeDetails }) {
   if (!activeDb) await initSQLiteDatabase();
-  const cleanUser = String(username || 'Anonymous').trim();
+  const cleanUser = (typeof username === 'string' && username.trim()) ? username.trim() : 'Anonymous';
   const cleanType = String(actionType || 'UNKNOWN').trim().toUpperCase();
   const cleanMpn = String(mpn || '').trim();
   const cleanDetails = String(changeDetails || '').trim();
@@ -771,6 +867,8 @@ module.exports = {
   updateUserEmail,
   updateUserPassword,
   insertAuditLog,
-  getAuditLogs
+  getAuditLogs,
+  getAllUsers,
+  updateUserPermissions
 };
 

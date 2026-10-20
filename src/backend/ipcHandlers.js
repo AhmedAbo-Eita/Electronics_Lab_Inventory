@@ -37,6 +37,7 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
    */
   ipcMain.handle('db:init-and-load', async () => {
     try {
+      await authService.ensureAdminUser();
       const res = await sqliteDb.getAllComponents();
       return {
         ok: res.ok,
@@ -54,6 +55,18 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
    */
   ipcMain.handle('db:save', async (_event, components) => {
     try {
+      const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        const isAdmin = currentUser.role === 'admin' || String(currentUser.username).toLowerCase() === 'admin';
+        if (!isAdmin && !currentUser.canModifyInventory) {
+          return { ok: false, error: 'Permission denied: Your account has explore-only access and cannot modify the database.' };
+        }
+        if (Array.isArray(components) && components.length === 0) {
+          if (!isAdmin && !currentUser.canDeleteAll) {
+            return { ok: false, error: 'Permission denied: You do not have permission to delete all inventory data.' };
+          }
+        }
+      }
       const res = await sqliteDb.saveAllComponents(components);
       if (res.ok) {
         setDirtyState(false);
@@ -317,6 +330,25 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
 
   ipcMain.handle('auth:update-password', async (_event, payload) => {
     return authService.changeUserPassword(payload);
+  });
+
+  ipcMain.handle('users:get-all', async () => {
+    return authService.getAllUsers();
+  });
+
+  ipcMain.handle('users:update-permissions', async (_event, payload) => {
+    const res = await authService.updateUserPermissions(payload);
+    if (res && res.ok && payload && payload.permissions) {
+      const adminUser = authService.getCurrentUserSync();
+      const adminName = adminUser ? adminUser.username : 'admin';
+      await auditLogger.logChange({
+        username: adminName,
+        actionType: 'PERMISSIONS',
+        mpn: payload.targetUsername,
+        changeDetails: `Updated permissions for ${payload.targetUsername}: Delete All=${payload.permissions.canDeleteAll ? 'YES' : 'NO'}, Modify=${payload.permissions.canModifyInventory ? 'YES' : 'NO'}`
+      });
+    }
+    return res;
   });
 
   // --------------------------------------------------------------------------

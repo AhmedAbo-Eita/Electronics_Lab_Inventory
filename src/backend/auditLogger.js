@@ -62,8 +62,30 @@ function diffComponent(oldComp, newComp) {
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
 async function logChange({ username, actionType, mpn = '', changeDetails }) {
-  const currentUser = authService.getCurrentUser();
-  const effectiveUser = username || (currentUser ? currentUser.username : 'Anonymous');
+  let effectiveUser = typeof username === 'string' && username.trim() ? username.trim() : null;
+
+  if (!effectiveUser && authService) {
+    try {
+      if (typeof authService.getCurrentUserSync === 'function') {
+        const syncUser = authService.getCurrentUserSync();
+        if (syncUser && syncUser.username) {
+          effectiveUser = String(syncUser.username).trim();
+        }
+      }
+      if (!effectiveUser && typeof authService.getCurrentUser === 'function') {
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser && currentUser.username) {
+          effectiveUser = String(currentUser.username).trim();
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to resolve current user for audit log:', err.message);
+    }
+  }
+
+  if (!effectiveUser) {
+    effectiveUser = 'Anonymous';
+  }
 
   const res = await sqliteDb.insertAuditLog({
     username: effectiveUser,

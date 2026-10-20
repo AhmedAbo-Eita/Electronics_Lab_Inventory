@@ -91,10 +91,18 @@ async function registerUser({ username, email, password }) {
   }
 
   const passwordHash = hashPassword(cleanPass);
+  const isRootAdmin = cleanUser.toLowerCase() === 'admin';
+  const role = isRootAdmin ? 'admin' : 'user';
+  const canDeleteAll = isRootAdmin ? 1 : 0;
+  const canModifyInventory = 1;
+
   const result = await sqliteDb.createUser({
     username: cleanUser,
     email: cleanEmail,
-    passwordHash
+    passwordHash,
+    role,
+    canDeleteAll,
+    canModifyInventory
   });
 
   if (!result.ok) {
@@ -104,6 +112,9 @@ async function registerUser({ username, email, password }) {
   currentSessionUser = {
     username: cleanUser,
     email: cleanEmail,
+    role,
+    canDeleteAll: Boolean(canDeleteAll),
+    canModifyInventory: Boolean(canModifyInventory),
     lastLogin: null,
     lastFailedLogin: null
   };
@@ -154,9 +165,18 @@ async function loginUser({ username, password }) {
   // Update success timestamp in database
   await sqliteDb.updateUserLoginSuccess(user.username);
 
+  const isRootAdmin = String(user.username).toLowerCase() === 'admin';
+  const userRole = isRootAdmin ? 'admin' : (user.role || 'user');
+  const canDeleteAll = isRootAdmin ? true : Boolean(user.canDeleteAll);
+  const canModifyInventory = isRootAdmin ? true : Boolean(user.canModifyInventory ?? 1);
+
   currentSessionUser = {
+    id: user.id,
     username: user.username,
     email: user.email,
+    role: userRole,
+    canDeleteAll,
+    canModifyInventory,
     lastLogin: previousLastLogin,
     lastFailedLogin: previousLastFailed
   };
@@ -180,9 +200,18 @@ async function getCurrentUser() {
   if (settings && settings.autoLogin && settings.autoLoginUsername) {
     const user = await sqliteDb.getUserByUsername(settings.autoLoginUsername);
     if (user) {
+      const isRootAdmin = String(user.username).toLowerCase() === 'admin';
+      const userRole = isRootAdmin ? 'admin' : (user.role || 'user');
+      const canDeleteAll = isRootAdmin ? true : Boolean(user.canDeleteAll);
+      const canModifyInventory = isRootAdmin ? true : Boolean(user.canModifyInventory ?? 1);
+
       currentSessionUser = {
+        id: user.id,
         username: user.username,
         email: user.email,
+        role: userRole,
+        canDeleteAll,
+        canModifyInventory,
         lastLogin: user.lastLogin,
         lastFailedLogin: user.lastFailedLogin
       };
@@ -194,12 +223,88 @@ async function getCurrentUser() {
 }
 
 /**
+ * Synchronously returns the currently cached session user, or null if not yet authenticated.
+ */
+function getCurrentUserSync() {
+  return currentSessionUser;
+}
+
+/**
  * Clears current session user on logout and disables auto-login.
  */
 function logoutUser() {
   currentSessionUser = null;
   appSettings.saveSettings({ autoLogin: false, autoLoginUsername: '' });
   return { ok: true };
+}
+
+/**
+ * Ensures the default Administrator account (admin / 1234) exists in the database.
+ */
+async function ensureAdminUser() {
+  try {
+    const existing = await sqliteDb.getUserByUsername('admin');
+    if (!existing) {
+      const passwordHash = hashPassword('1234');
+      await sqliteDb.createUser({
+        username: 'admin',
+        email: 'admin@lab.local',
+        passwordHash,
+        role: 'admin',
+        canDeleteAll: 1,
+        canModifyInventory: 1
+      });
+      console.log('Seeded default administrator account (admin / 1234).');
+    } else {
+      const isMatch = verifyPassword('1234', existing.passwordHash);
+      if (!isMatch) {
+        const passwordHash = hashPassword('1234');
+        await sqliteDb.updateUserPassword('admin', passwordHash);
+      }
+      await sqliteDb.updateUserPermissions('admin', {
+        role: 'admin',
+        canDeleteAll: 1,
+        canModifyInventory: 1
+      });
+    }
+  } catch (err) {
+    console.warn('Notice ensuring admin account:', err.message);
+  }
+}
+
+/**
+ * Returns all users if the currently authenticated user is an administrator.
+ */
+async function getAllUsers() {
+  const user = await getCurrentUser();
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  if (!isAdmin) {
+    return { ok: false, error: 'Unauthorized: Only administrator can view user permissions.' };
+  }
+  const users = await sqliteDb.getAllUsers();
+  return { ok: true, users };
+}
+
+/**
+ * Updates permissions for a specific user.
+ */
+async function updateUserPermissions({ targetUsername, permissions } = {}) {
+  const user = await getCurrentUser();
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  if (!isAdmin) {
+    return { ok: false, error: 'Unauthorized: Only administrator can modify user permissions.' };
+  }
+  if (!targetUsername) {
+    return { ok: false, error: 'Target username is required.' };
+  }
+
+  const res = await sqliteDb.updateUserPermissions(targetUsername, permissions);
+  if (res.ok && currentSessionUser && currentSessionUser.username.toLowerCase() === targetUsername.toLowerCase()) {
+    currentSessionUser.role = res.user.role;
+    currentSessionUser.canDeleteAll = Boolean(res.user.canDeleteAll);
+    currentSessionUser.canModifyInventory = Boolean(res.user.canModifyInventory);
+  }
+  return res;
 }
 
 /**
@@ -324,7 +429,11 @@ module.exports = {
   registerUser,
   loginUser,
   getCurrentUser,
+  getCurrentUserSync,
   logoutUser,
+  ensureAdminUser,
+  getAllUsers,
+  updateUserPermissions,
   changeUserEmail,
   changeUserPassword
 };

@@ -164,6 +164,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateUserPassword: (payload) => ipcRenderer.invoke('auth:update-password', payload),
 
   /**
+   * Retrieves all users (admin only).
+   */
+  getAllUsers: () => ipcRenderer.invoke('users:get-all'),
+
+  /**
+   * Updates user permissions (admin only).
+   */
+  updateUserPermissions: (payload) => ipcRenderer.invoke('users:update-permissions', payload),
+
+  /**
    * Loads general application settings.
    */
   getAppSettings: () => ipcRenderer.invoke('app:get-settings'),

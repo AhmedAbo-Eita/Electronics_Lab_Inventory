@@ -261,6 +261,7 @@
           <span>History</span>
         </button>
 
+        <span id="readOnlyModeBanner" class="read-only-pill hidden" title="Your account has explore-only access. Actions that modify the database are disabled.">&#128065; View-Only</span>
         <div class="user-chip" id="authUserChip" title="Authenticated User Profile">
           <div class="user-avatar-circle">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
@@ -734,6 +735,9 @@
           <button type="button" class="simple-tab-btn ripple-btn" role="tab" id="settingsTabBtnAbout" aria-selected="false" aria-controls="settingsPanelAbout" data-tab="about">
             About &amp; Updates
           </button>
+          <button type="button" class="simple-tab-btn ripple-btn hidden" role="tab" id="settingsTabBtnPermissions" aria-selected="false" aria-controls="settingsPanelPermissions" data-tab="permissions">
+            User Permissions
+          </button>
         </nav>
 
         <!-- Content Area -->
@@ -758,6 +762,10 @@
                   <div class="simple-info-row">
                     <span class="simple-info-label">Status:</span>
                     <span id="settingsAccountStatusBadge" class="simple-badge-active">Active Session</span>
+                  </div>
+                  <div class="simple-info-row">
+                    <span class="simple-info-label">Role:</span>
+                    <span id="settingsAccountRoleBadge" class="account-status-badge badge-admin">Administrator</span>
                   </div>
                   <div class="simple-info-row">
                     <span class="simple-info-label">Session:</span>
@@ -1048,6 +1056,49 @@
               <div class="simple-form-actions" style="justify-content: flex-start;">
                 <button type="button" id="openRepoBtn" class="btn-outlined btn-sm ripple-btn">GitHub Repository</button>
                 <button type="button" id="reportIssueBtn" class="btn-outlined btn-sm ripple-btn">Report an Issue</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 5: USER ACCESS & PERMISSIONS (ADMINISTRATOR ONLY)         -->
+          <!-- ============================================================ -->
+          <div id="settingsPanelPermissions" class="simple-tab-panel" role="tabpanel" aria-labelledby="settingsTabBtnPermissions">
+            <div class="simple-section">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <h3 class="simple-section-title" style="margin-bottom: 2px;">User Access &amp; Permissions</h3>
+                  <p class="simple-section-desc" style="margin-bottom: 0;">Configure database modification and clear privileges for registered accounts.</p>
+                </div>
+                <button type="button" id="refreshPermissionsBtn" class="btn-outlined btn-sm ripple-btn">Refresh</button>
+              </div>
+
+              <div class="permissions-banner-box">
+                <span class="permissions-banner-icon">&#128737;</span>
+                <div class="permissions-banner-text">
+                  <strong>Permission Controls:</strong>
+                  <div>&bull; <strong>Delete All:</strong> Allows clearing the entire inventory table from the database.</div>
+                  <div>&bull; <strong>Modify Inventory:</strong> If disabled, user enters <em>Explore / View-Only Mode</em> and cannot add, edit, delete, or import parts.</div>
+                  <div>&bull; <strong>admin</strong> has permanent full access.</div>
+                </div>
+              </div>
+
+              <div class="permissions-table-wrap">
+                <table class="data-table permissions-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th style="text-align: center;">Delete All Data</th>
+                      <th style="text-align: center;">Modify Inventory</th>
+                      <th>Access Level</th>
+                    </tr>
+                  </thead>
+                  <tbody id="permissionsTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

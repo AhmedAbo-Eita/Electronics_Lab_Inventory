@@ -314,7 +314,13 @@ window.showAppDialog = showAppDialog;
  */
 function logAuditRecord(actionType, mpn, changeDetails) {
   if (window.electronAPI && typeof window.electronAPI.logAuditChange === 'function') {
+    let username;
+    try {
+      const user = window.authController && typeof window.authController.getCurrentUser === 'function' ? window.authController.getCurrentUser() : null;
+      if (user && user.username) username = user.username;
+    } catch {}
     window.electronAPI.logAuditChange({
+      username,
       actionType,
       mpn,
       changeDetails
@@ -327,6 +333,17 @@ function logAuditRecord(actionType, mpn, changeDetails) {
 // ============================================================================
 // String Normalization & Data Model Helpers
 // ============================================================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
 
 function normalizeString(str) {
   return String(str || '')
@@ -596,6 +613,13 @@ function highlightSelectedInventoryRow() {
 }
 
 function startInlineCellEdit(td, canonicalMPN, colIndex, initialText) {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Editing cells is disabled.');
+    return;
+  }
   if (td.querySelector('input')) return;
   const idx = searchComponentByMPN(componentList, canonicalMPN);
   if (idx === -1) return;
@@ -995,6 +1019,13 @@ function switchSubTab(targetSubTabId) {
 }
 
 async function onAddPushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Adding components is disabled.');
+    return;
+  }
   const rawMpn = document.getElementById('MPNLineEdit').value.trim();
   const rawLoc = document.getElementById('locationLineEdit').value.trim();
 
@@ -1068,6 +1099,18 @@ async function onAddPushButtonClicked() {
 }
 
 async function onCleanPushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canDeleteAll = isAdmin || (user && user.canDeleteAll);
+  if (!canDeleteAll) {
+    await showAppDialog({
+      type: 'warning',
+      title: 'Permission Denied',
+      message: 'You do not have permission to delete all inventory data. Only Administrator accounts or users granted Delete All access can perform this action.'
+    });
+    return;
+  }
+
   const { response } = await showAppDialog({
     type: 'clear',
     icon: 'clear',
@@ -1102,6 +1145,13 @@ async function onCleanPushButtonClicked() {
 }
 
 async function onResetPushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Reverting database is disabled.');
+    return;
+  }
   const { response } = await showAppDialog({
     type: 'reset',
     icon: 'reset',
@@ -1136,6 +1186,13 @@ async function onResetPushButtonClicked() {
 }
 
 async function onSavePushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Saving changes is disabled.');
+    return;
+  }
   const { response } = await showAppDialog({
     type: 'save',
     icon: 'save',
@@ -1183,6 +1240,13 @@ async function onExportPushButtonClicked() {
 }
 
 async function onImportPushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Importing data is disabled.');
+    return;
+  }
   const res = await window.electronAPI.importDBDialog('Import Inventory Spreadsheet (Excel / CSV / DB)');
   if (res.canceled) return;
   if (!res.ok) {
@@ -1353,6 +1417,13 @@ async function onEditFindpushButtonClicked() {
 }
 
 function onApplyEditspushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Editing components is disabled.');
+    return;
+  }
   let targetIdx = searchComponentByMPN(componentList, selectedMPN);
   if (targetIdx === -1) {
     targetIdx = searchComponentByMPN(componentList, document.getElementById('editMPNLineEdit').value);
@@ -1388,6 +1459,13 @@ function onApplyEditspushButtonClicked() {
 }
 
 async function onDeleteComponentpushButtonClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Deleting components is disabled.');
+    return;
+  }
   let targetIdx = searchComponentByMPN(componentList, selectedMPN);
   if (targetIdx === -1) {
     targetIdx = searchComponentByMPN(componentList, document.getElementById('editMPNLineEdit').value);
@@ -1514,6 +1592,13 @@ async function onExportBomReportClicked() {
 }
 
 async function onDeductBomStockClicked() {
+  const user = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin');
+  const canModify = isAdmin || !user || user.canModifyInventory;
+  if (!canModify) {
+    showToast('Explore Mode: Deducting inventory is disabled.');
+    return;
+  }
   if (bomAnalysis.length === 0) return;
 
   const boardsCount = Math.max(1, parseInt(document.getElementById('bomBoardsSpinBox').value, 10) || 1);
@@ -1696,7 +1781,7 @@ let latestDownloadedFilePath = null;
  * @param {'account' | 'preferences' | 'database' | 'about'} tabKey
  */
 function switchSettingsTab(tabKey) {
-  const tabs = ['account', 'preferences', 'database', 'about'];
+  const tabs = ['account', 'preferences', 'database', 'about', 'permissions'];
   if (!tabs.includes(tabKey)) tabKey = 'account';
   currentSettingsTab = tabKey;
 
@@ -1714,6 +1799,218 @@ function switchSettingsTab(tabKey) {
       panel.classList.toggle('active', isActive);
     }
   });
+
+  if (tabKey === 'permissions') {
+    loadPermissionsPanel();
+  }
+}
+
+/**
+ * Applies role and permission rules across the application UI.
+ */
+function applyUserPermissions(user) {
+  const isAdmin = Boolean(user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin'));
+  const canDeleteAll = Boolean(user && (isAdmin || user.canDeleteAll));
+  const canModify = Boolean(user && (isAdmin || user.canModifyInventory));
+
+  // 1. Settings tab for Permissions (Only for admin)
+  const permBtn = document.getElementById('settingsTabBtnPermissions');
+  if (permBtn) {
+    permBtn.classList.toggle('hidden', !isAdmin);
+    if (!isAdmin && currentSettingsTab === 'permissions') {
+      switchSettingsTab('account');
+    }
+  }
+
+  // 2. Clear All Button
+  const cleanBtn = document.getElementById('cleanPushButton');
+  if (cleanBtn) {
+    if (canDeleteAll) {
+      cleanBtn.classList.remove('btn-disabled-perm');
+      cleanBtn.title = 'Clear all inventory components';
+    } else {
+      cleanBtn.classList.add('btn-disabled-perm');
+      cleanBtn.title = 'Clear All Data is restricted. Contact Administrator for access.';
+    }
+  }
+
+  // 3. View-Only Pill in header
+  const readOnlyPill = document.getElementById('readOnlyModeBanner');
+  if (readOnlyPill) {
+    readOnlyPill.classList.toggle('hidden', canModify);
+  }
+
+  // 4. Modifying action buttons
+  const modifyBtnIds = [
+    'importPushButton',
+    'savePushButton',
+    'resetPushButton',
+    'addPushButton',
+    'clearPushButton',
+    'applyEditspushButton',
+    'deleteComponentpushButton',
+    'incStockPushButton',
+    'decStockPushButton',
+    'deductBomStockPushButton'
+  ];
+
+  modifyBtnIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (!canModify) {
+        el.classList.add('btn-disabled-perm');
+        el.title = 'Explore Mode: Inventory modification is disabled for your account.';
+      } else {
+        el.classList.remove('btn-disabled-perm');
+        if (id === 'importPushButton') el.title = 'Import inventory components from Excel (.xlsx) or CSV file and save to database';
+        else if (id === 'savePushButton') el.title = 'Save changes to local SQLite database (and sync to MySQL)';
+        else if (id === 'resetPushButton') el.title = 'Discard unsaved changes and reload last saved database state';
+      }
+    }
+  });
+
+  // 5. Account role badge
+  const roleBadge = document.getElementById('settingsAccountRoleBadge');
+  if (roleBadge) {
+    if (user) {
+      if (isAdmin) {
+        roleBadge.textContent = 'Administrator';
+        roleBadge.className = 'account-status-badge badge-admin';
+      } else if (canModify) {
+        roleBadge.textContent = canDeleteAll ? 'Editor (Full Access)' : 'Editor';
+        roleBadge.className = 'account-status-badge badge-active';
+      } else {
+        roleBadge.textContent = 'Viewer (Explore Only)';
+        roleBadge.className = 'account-status-badge badge-readonly';
+      }
+    } else {
+      roleBadge.textContent = 'Guest';
+      roleBadge.className = 'account-status-badge badge-offline';
+    }
+  }
+}
+
+/**
+ * Loads and renders registered users into the Admin User Permissions table.
+ */
+async function loadPermissionsPanel() {
+  const tbody = document.getElementById('permissionsTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading user permissions...</td></tr>';
+
+  try {
+    const res = await window.electronAPI.getAllUsers();
+    if (!res.ok || !Array.isArray(res.users)) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--danger);">Failed to load users: ${escapeHtml(res.error || 'Unknown error')}</td></tr>`;
+      return;
+    }
+
+    const currentAuth = window.authController ? window.authController.getCurrentUser() : null;
+    const currentUsername = currentAuth ? currentAuth.username.toLowerCase() : '';
+
+    if (res.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No registered users found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = res.users.map((u) => {
+      const isRootAdmin = u.username.toLowerCase() === 'admin';
+      const isMe = u.username.toLowerCase() === currentUsername;
+      const isAdmin = u.role === 'admin' || isRootAdmin;
+      const canDelete = isAdmin || Boolean(u.canDeleteAll);
+      const canModify = isAdmin || Boolean(u.canModifyInventory);
+
+      let accessBadgeHtml = '';
+      if (isAdmin) {
+        accessBadgeHtml = '<span class="badge-admin">Admin</span>';
+      } else if (canModify && canDelete) {
+        accessBadgeHtml = '<span class="badge-full">Full Access</span>';
+      } else if (canModify) {
+        accessBadgeHtml = '<span class="badge-editor">Editor</span>';
+      } else {
+        accessBadgeHtml = '<span class="badge-readonly">Explore Only</span>';
+      }
+
+      return `
+        <tr data-username="${escapeHtml(u.username)}">
+          <td>
+            <strong>${escapeHtml(u.username)}</strong>
+            ${isMe ? '<span style="font-size: 10px; opacity: 0.6; margin-left: 4px;">(You)</span>' : ''}
+          </td>
+          <td style="color: var(--text-muted); font-size: 12px;">${escapeHtml(u.email || '—')}</td>
+          <td><span style="text-transform: capitalize;">${escapeHtml(u.role || 'user')}</span></td>
+          <td style="text-align: center;">
+            <label class="modern-switch" title="${isRootAdmin ? 'Root admin always has delete permission' : 'Toggle Delete All Data permission'}">
+              <input type="checkbox" class="perm-delete-checkbox" ${canDelete ? 'checked' : ''} ${isRootAdmin ? 'disabled' : ''} data-user="${escapeHtml(u.username)}" />
+              <span class="modern-switch-slider"></span>
+            </label>
+          </td>
+          <td style="text-align: center;">
+            <label class="modern-switch" title="${isRootAdmin ? 'Root admin always has modify permission' : 'Toggle Modify Inventory permission'}">
+              <input type="checkbox" class="perm-modify-checkbox" ${canModify ? 'checked' : ''} ${isRootAdmin ? 'disabled' : ''} data-user="${escapeHtml(u.username)}" />
+              <span class="modern-switch-slider"></span>
+            </label>
+          </td>
+          <td class="perm-status-cell">${accessBadgeHtml}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // Attach switch change listeners
+    tbody.querySelectorAll('.perm-delete-checkbox, .perm-modify-checkbox').forEach((input) => {
+      input.addEventListener('change', async (e) => {
+        const username = e.target.getAttribute('data-user');
+        const tr = e.target.closest('tr');
+        const deleteCb = tr.querySelector('.perm-delete-checkbox');
+        const modifyCb = tr.querySelector('.perm-modify-checkbox');
+        const statusCell = tr.querySelector('.perm-status-cell');
+
+        const newDeleteAll = deleteCb.checked;
+        const newModify = modifyCb.checked;
+
+        try {
+          const updateRes = await window.electronAPI.updateUserPermissions({
+            targetUsername: username,
+            permissions: {
+              canDeleteAll: newDeleteAll,
+              canModifyInventory: newModify
+            }
+          });
+
+          if (!updateRes.ok) {
+            showToast(`Error: ${updateRes.error || 'Failed to update permissions'}`);
+            e.target.checked = !e.target.checked;
+            return;
+          }
+
+          if (newModify && newDeleteAll) {
+            statusCell.innerHTML = '<span class="badge-full">Full Access</span>';
+          } else if (newModify) {
+            statusCell.innerHTML = '<span class="badge-editor">Editor</span>';
+          } else {
+            statusCell.innerHTML = '<span class="badge-readonly">Explore Only</span>';
+          }
+
+          showToast(`Updated permissions for ${username}`);
+
+          if (currentAuth && currentAuth.username.toLowerCase() === username.toLowerCase()) {
+            currentAuth.canDeleteAll = newDeleteAll;
+            currentAuth.canModifyInventory = newModify;
+            applyUserPermissions(currentAuth);
+          }
+        } catch (err) {
+          showToast(`Update error: ${err.message}`);
+          e.target.checked = !e.target.checked;
+        }
+      });
+    });
+
+  } catch (err) {
+    const errorMsg = (err && err.message) ? err.message : String(err);
+    console.error('Failed to load user permissions:', err);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--danger);">Error loading users: ${escapeHtml(errorMsg)}</td></tr>`;
+  }
 }
 
 /**
@@ -1747,7 +2044,8 @@ async function refreshAccountTab() {
       avatarInitials.textContent = (user.username || 'U').charAt(0).toUpperCase();
     }
     if (lastLoginLabel) {
-      lastLoginLabel.textContent = user.lastLogin ? `Last login: ${user.lastLogin}` : 'Current session';
+      const formattedLogin = (window.authController && typeof window.authController.formatAuditDate === 'function') ? window.authController.formatAuditDate(user.lastLogin) : user.lastLogin;
+      lastLoginLabel.textContent = user.lastLogin ? ('Last login: ' + formattedLogin) : 'Current session';
     }
   } else {
     if (usernameLabel) usernameLabel.textContent = 'Guest / Anonymous';
@@ -2781,13 +3079,24 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Sidebar Tab Switchers
-  ['account', 'preferences', 'database', 'about'].forEach((tabKey) => {
+  ['account', 'preferences', 'database', 'about', 'permissions'].forEach((tabKey) => {
     const capitalized = tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
     const btn = document.getElementById(`settingsTabBtn${capitalized}`);
     if (btn) {
       btn.addEventListener('click', () => switchSettingsTab(tabKey));
     }
   });
+
+  const refreshPermsBtn = document.getElementById('refreshPermissionsBtn');
+  if (refreshPermsBtn) {
+    refreshPermsBtn.addEventListener('click', loadPermissionsPanel);
+  }
+
+  // Hook into auth state changes
+  window.onAuthStateChanged = (authUser) => {
+    applyUserPermissions(authUser);
+    refreshAccountTab();
+  };
 
   // Password Visibility Toggle Eyes
   setupPasswordToggle('toggleChangeEmailPassBtn', 'changeEmailPasswordInput');
