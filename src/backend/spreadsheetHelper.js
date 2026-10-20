@@ -419,10 +419,98 @@ function writeBomReportSpreadsheet(filePath, boardName, boardsCount, analysisIte
   }
 }
 
+/**
+ * Writes an Assembly Component Pick / Kitting List to an Excel (.xlsx) or CSV file.
+ * Formats components with required quantities calculated for the assigned number of boards,
+ * reference designators, and lab storage locations for assembly.
+ *
+ * @param {string} filePath Target file path (.xlsx or .csv)
+ * @param {string} boardName Name of the PCB assembly/project
+ * @param {number} boardsCount Number of boards to assemble
+ * @param {Array} analysisItems Calculated BOM analysis items
+ * @returns {{ ok: boolean, error?: string, path?: string }}
+ */
+function writeAssemblyPickListSpreadsheet(filePath, boardName, boardsCount, analysisItems = []) {
+  try {
+    const effectiveBoard = (boardName || '').trim() || 'Assembly_Project';
+    const effectiveCount = Math.max(1, Number(boardsCount) || 1);
+
+    const headers = [
+      'Item #',
+      'Board Name',
+      'Boards to Build',
+      'Manufacturer Part Number (MPN)',
+      'Component Type',
+      'Value / Rating',
+      'Package / Footprint',
+      'Reference Designators',
+      'Qty / Board',
+      'Total Required Qty',
+      'Lab Location',
+      'Stock Status',
+      'Picked / Verified'
+    ];
+
+    const data = [headers];
+
+    let itemNumber = 1;
+    for (const item of analysisItems) {
+      const bc = item.bomComponent || {};
+      const qtyPerBoard = Number(bc.quantity) || 1;
+      const totalRequired = Number(item.totalRequired) || (qtyPerBoard * effectiveCount);
+
+      data.push([
+        itemNumber++,
+        effectiveBoard,
+        effectiveCount,
+        bc.mpn || '',
+        bc.type || bc.componentType || '',
+        bc.value || '',
+        bc.footprint || '',
+        bc.customerCode || '',
+        qtyPerBoard,
+        totalRequired,
+        item.labLocation || 'Not in Lab',
+        item.statusText || (item.shortage > 0 ? `SHORTAGE (${item.shortage} missing)` : 'READY IN STOCK'),
+        ''
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [
+      { wch: 8 },
+      { wch: 22 },
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 26 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 22 },
+      { wch: 16 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Assembly Pick List');
+
+    const ext = path.extname(filePath).toLowerCase();
+    const bookType = ext === '.csv' ? 'csv' : 'xlsx';
+
+    XLSX.writeFile(wb, filePath, { bookType });
+    return { ok: true, path: filePath };
+  } catch (err) {
+    return { ok: false, error: `Failed to write assembly pick list: ${err.message}` };
+  }
+}
+
 module.exports = {
   readInventorySpreadsheet,
   writeInventorySpreadsheet,
   writeTemplateSpreadsheet,
   readBomSpreadsheet,
-  writeBomReportSpreadsheet
+  writeBomReportSpreadsheet,
+  writeAssemblyPickListSpreadsheet
 };

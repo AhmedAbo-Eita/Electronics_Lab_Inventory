@@ -94,24 +94,41 @@ async function logChange({ username, actionType, mpn = '', changeDetails }) {
     changeDetails: String(changeDetails || '').trim()
   });
 
-  // Optional: push to MySQL if connected
+  // Push to remote MySQL if enabled & online
   try {
-    const status = await mysqlClient.getStatus();
-    if (status.enabled && status.connected) {
-      const pool = mysqlClient.getPool();
-      if (pool) {
-        await pool.query(
-          'INSERT INTO `inventory_audit_log` (`username`, `action_type`, `mpn`, `change_details`, `changed_at`) VALUES (?, ?, ?, ?, NOW())',
-          [effectiveUser, actionType, mpn, changeDetails]
-        );
+    const cfg = mysqlClient.loadConfig();
+    if (cfg && cfg.enabled) {
+      const check = await mysqlClient.testConnection();
+      if (check.online) {
+        await mysqlClient.pushAuditRecordToRemote({
+          username: effectiveUser,
+          actionType,
+          mpn,
+          changeDetails
+        });
       }
     }
   } catch (err) {
     // Non-fatal if MySQL audit sync fails
-    console.warn('MySQL audit sync notice:', err.message);
+    console.warn('MySQL audit push notice:', err.message);
   }
 
   return res;
+}
+
+/**
+ * Convenience helper accepting either positional arguments or an object.
+ */
+async function logAuditRecord(arg1, actionType, mpn, changeDetails) {
+  if (arg1 && typeof arg1 === 'object') {
+    return logChange(arg1);
+  }
+  return logChange({
+    username: arg1,
+    actionType,
+    mpn,
+    changeDetails
+  });
 }
 
 /**
@@ -124,5 +141,6 @@ async function getHistory({ limit = 100, search = '', action = '' } = {}) {
 module.exports = {
   diffComponent,
   logChange,
+  logAuditRecord,
   getHistory
 };

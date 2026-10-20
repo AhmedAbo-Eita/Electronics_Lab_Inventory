@@ -996,10 +996,14 @@ function refreshBomAnalysis() {
   animateCounter(document.getElementById('bomSummaryMaxBuildsLabel'), maxBuildableBoards);
 
   const hasBom = bomAnalysis.length > 0;
+  const saveBomBtn = document.getElementById('saveBomPushButton');
   const exportBtn = document.getElementById('exportBomReportPushButton');
+  const assemblyListBtn = document.getElementById('exportAssemblyListPushButton');
   const deductBtn = document.getElementById('deductBomStockPushButton');
   const clearBtn = document.getElementById('clearBomPushButton');
+  if (saveBomBtn) saveBomBtn.disabled = !hasBom;
   if (exportBtn) exportBtn.disabled = !hasBom;
+  if (assemblyListBtn) assemblyListBtn.disabled = !hasBom;
   if (deductBtn) deductBtn.disabled = !hasBom;
   if (clearBtn) clearBtn.disabled = !hasBom;
 }
@@ -1262,20 +1266,84 @@ async function onImportPushButtonClicked() {
     createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode)
   );
 
+  if (incomingList.length === 0) {
+    showToast('No valid component rows found in the selected file.');
+    return;
+  }
+
+  // Identify duplicate MPNs with existing inventory
+  const duplicateItems = [];
+  const brandNewItems = [];
+
+  for (const inc of incomingList) {
+    const exists = componentList.some(
+      (c) => normalizeString(c.mpn) === normalizeString(inc.mpn)
+    );
+    if (exists) {
+      duplicateItems.push(inc);
+    } else {
+      brandNewItems.push(inc);
+    }
+  }
+
+  let mode = 'merge'; // 'merge' (add quantity) or 'new_row' (store in new place)
+
+  if (duplicateItems.length > 0) {
+    const sampleDupes = duplicateItems.slice(0, 3).map((d) => d.mpn).join(', ');
+    const moreText = duplicateItems.length > 3 ? ` and ${duplicateItems.length - 3} more` : '';
+
+    const { response } = await showAppDialog({
+      type: 'question',
+      buttons: ['Add Quantity to Old One', 'Store in New Place (New Row)', 'Cancel Import'],
+      defaultId: 0,
+      cancelId: 2,
+      title: 'Duplicate MPN Detected',
+      message:
+        `Found ${duplicateItems.length} component(s) whose MPN already exists in your inventory:\n` +
+        `(${sampleDupes}${moreText})\n\n` +
+        `How would you like to handle these components?\n\n` +
+        `• "Add Quantity to Old One": Adds the imported quantity to the existing component's stock.\n` +
+        `• "Store in New Place (New Row)": Keeps the old component unchanged and creates a new separate row (e.g. for a different cabinet / bin).\n` +
+        `• "Cancel Import": Aborts without making any changes.`
+    });
+
+    if (response === 2 || response === undefined || response === -1) {
+      return; // Cancelled
+    }
+
+    if (response === 0) {
+      mode = 'merge';
+    } else if (response === 1) {
+      mode = 'new_row';
+    }
+  }
+
   let addedCount = 0;
   let mergedCount = 0;
 
-  for (const inc of incomingList) {
-    const existingIdx = searchComponentByMPN(componentList, inc.mpn);
-    if (existingIdx !== -1) {
-      const target = componentList[existingIdx];
-      target.quantity += inc.quantity;
-      if (!target.value && inc.value) target.value = inc.value;
-      if (!target.footprint && inc.footprint) target.footprint = inc.footprint;
-      if (!target.location && inc.location) target.location = inc.location;
-      if (!target.customerCode && inc.customerCode) target.customerCode = inc.customerCode;
-      mergedCount++;
-    } else {
+  if (mode === 'merge') {
+    for (const inc of duplicateItems) {
+      const existingIdx = searchComponentByMPN(componentList, inc.mpn);
+      if (existingIdx !== -1) {
+        const target = componentList[existingIdx];
+        target.quantity += inc.quantity;
+        if (!target.value && inc.value) target.value = inc.value;
+        if (!target.footprint && inc.footprint) target.footprint = inc.footprint;
+        if (!target.location && inc.location) target.location = inc.location;
+        if (!target.customerCode && inc.customerCode) target.customerCode = inc.customerCode;
+        mergedCount++;
+      } else {
+        componentList.push(inc);
+        addedCount++;
+      }
+    }
+    for (const inc of brandNewItems) {
+      componentList.push(inc);
+      addedCount++;
+    }
+  } else {
+    // mode === 'new_row': all incoming items (both brand new and duplicates) are stored as separate rows
+    for (const inc of incomingList) {
       componentList.push(inc);
       addedCount++;
     }
@@ -1294,12 +1362,11 @@ async function onImportPushButtonClicked() {
   } else {
     componentListOldSave = cloneComponentList(componentList);
     updateDashboardMetrics();
-    logAuditRecord(
-      'IMPORT',
-      'BATCH',
-      `Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged) & saved to DB`
-    );
-    showToast(`Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} merged) & saved to DB`);
+    const summary = mode === 'merge'
+      ? `Imported ${incomingList.length} rows (${addedCount} new, ${mergedCount} quantities added to existing) & saved to DB`
+      : `Imported ${incomingList.length} rows as separate inventory rows & saved to DB`;
+    logAuditRecord('IMPORT', 'BATCH', summary);
+    showToast(summary);
     syncDatabaseQuietly();
   }
 }
@@ -1533,36 +1600,31 @@ async function onImportBomPushButtonClicked() {
   showToast(`Loaded BOM with ${bomItems.length} unique parts`);
 }
 
-function onLoadSampleBomClicked() {
-  bomItems = [];
-  const boardInput = document.getElementById('BomBoardNamelineEdit');
-  if (!boardInput.value.trim()) {
-    boardInput.value = 'STM32_Motor_Driver_RevA';
-  }
+async function onExportAssemblyListClicked() {
+  if (bomAnalysis.length === 0) return;
 
-  if (componentList.length > 0) {
-    const count = Math.min(componentList.length, 6);
-    for (let i = 0; i < count; i++) {
-      const c = { ...componentList[i] };
-      const reqQty = i % 3 === 0 ? 2 : i % 2 === 0 ? 4 : 1;
-      c.quantity = reqQty;
-      if (!c.customerCode) {
-        c.customerCode = `U${i + 1}`;
-      }
-      bomItems.push(c);
-    }
+  const boardName = document.getElementById('BomBoardNamelineEdit').value.trim() || 'Board_Assembly';
+  const boardsCount = Math.max(1, parseInt(document.getElementById('bomBoardsSpinBox').value, 10) || 1);
+  const safeBoard = boardName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const defaultFile = `${safeBoard}_Assembly_List_${boardsCount}boards.xlsx`;
+
+  const res = await window.electronAPI.exportAssemblyList({
+    defaultPath: defaultFile,
+    boardName,
+    boardsCount,
+    analysisItems: bomAnalysis
+  });
+
+  if (res.canceled) return;
+  if (res.ok) {
+    showToast(`Exported Assembly Pick List for ${boardsCount}x '${boardName}' (Excel / CSV)`, 'success');
   } else {
-    bomItems.push(createComponent('STM32F103C8T6', 1, 'IC', '32-bit MCU', 'LQFP-48', 'Bin-A1', 'U1'));
-    bomItems.push(createComponent('AMS1117-3.3', 2, 'IC', '3.3V 1A LDO', 'SOT-223', 'Bin-A2', 'U2, U3'));
-    bomItems.push(createComponent('RC0603FR-0710KL', 8, 'Resistor', '10k', '0603', 'Bin-R1', 'R1-R8'));
-    bomItems.push(createComponent('CL10B104KB8NNNC', 12, 'Capacitor', '100nF', '0603', 'Bin-C1', 'C1-C12'));
-    bomItems.push(createComponent('IRFZ44NPBF', 4, 'MOSFET', '55V 49A', 'TO-220', 'Bin-M1', 'Q1-Q4'));
+    await showAppDialog({
+      type: 'warning',
+      title: 'Export Failed',
+      message: res.error || 'Could not export assembly pick list.'
+    });
   }
-
-  bomItems.push(createComponent('TPS5430DDAR', 2, 'IC', '3A Buck Converter', 'SOP-8', '—', 'U9, U10'));
-
-  refreshBomAnalysis();
-  showToast('Loaded sample BOM for STM32_Motor_Driver_RevA');
 }
 
 async function onExportBomReportClicked() {
@@ -1664,6 +1726,279 @@ function onClearBomClicked() {
   document.getElementById('bomBoardsSpinBox').value = 1;
   refreshBomAnalysis();
   showToast('Cleared BOM table');
+}
+
+// ============================================================================
+// Saved BOM Projects (Local SQLite & Online MySQL)
+// ============================================================================
+
+let savedBomsCache = [];
+
+async function onSaveBomPushButtonClicked() {
+  if (!bomItems || bomItems.length === 0) {
+    showToast('No BOM loaded to save.');
+    return;
+  }
+
+  const boardNameInput = document.getElementById('BomBoardNamelineEdit');
+  let boardName = (boardNameInput ? boardNameInput.value : '').trim();
+  const boardsCount = Math.max(1, parseInt(document.getElementById('bomBoardsSpinBox').value, 10) || 1);
+
+  if (!boardName) {
+    const defaultName = `Project_BOM_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+    const { response } = await showAppDialog({
+      type: 'question',
+      buttons: ['Save as ' + defaultName, 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Project Name Needed',
+      message: 'Please provide a Board / Project Name before saving.\n\nWould you like to save with the default name: "' + defaultName + '"?'
+    });
+    if (response !== 0) return;
+    boardName = defaultName;
+    if (boardNameInput) boardNameInput.value = defaultName;
+  }
+
+  // Check if project already exists
+  try {
+    const listRes = await window.electronAPI.listSavedBoms();
+    if (listRes.ok && Array.isArray(listRes.list)) {
+      const exists = listRes.list.some(b => b.name && b.name.toLowerCase() === boardName.toLowerCase());
+      if (exists) {
+        const { response } = await showAppDialog({
+          type: 'question',
+          buttons: ['Overwrite', 'Cancel'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'Project Already Exists',
+          message: `A BOM project named '${boardName}' already exists in the database.\n\nDo you want to overwrite it with current data (${bomItems.length} parts, ${boardsCount} boards)?`
+        });
+        if (response !== 0) return;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not check existing BOMs:', err.message);
+  }
+
+  const res = await window.electronAPI.saveBomProject({
+    name: boardName,
+    boardsCount,
+    items: bomItems
+  });
+
+  if (!res.ok) {
+    await showAppDialog({
+      type: 'warning',
+      title: 'Save Failed',
+      message: res.error || 'Could not save BOM project.'
+    });
+    return;
+  }
+
+  if (res.syncedOnline) {
+    showToast(`Saved '${boardName}' to local SQLite & online MySQL!`, 'success');
+  } else {
+    showToast(`Saved '${boardName}' to local SQLite database!`, 'success');
+  }
+}
+
+function openSavedBomsModal() {
+  const modal = document.getElementById('savedBomsModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    loadAndRenderSavedBoms();
+    const searchInput = document.getElementById('savedBomsSearchInput');
+    if (searchInput) {
+      searchInput.value = '';
+      setTimeout(() => searchInput.focus(), 100);
+    }
+  }
+}
+
+function closeSavedBomsModal() {
+  const modal = document.getElementById('savedBomsModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function loadAndRenderSavedBoms() {
+  const container = document.getElementById('savedBomsListContainer');
+  const emptyState = document.getElementById('savedBomsEmptyState');
+  if (!container) return;
+
+  container.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted);">Loading projects...</div>';
+  if (emptyState) emptyState.classList.add('hidden');
+
+  const res = await window.electronAPI.listSavedBoms();
+  if (!res.ok) {
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: #EA4335;">Failed to load saved projects: ${res.error || 'Unknown error'}</div>`;
+    return;
+  }
+
+  savedBomsCache = res.list || [];
+  renderSavedBomsList();
+}
+
+function renderSavedBomsList() {
+  const container = document.getElementById('savedBomsListContainer');
+  const emptyState = document.getElementById('savedBomsEmptyState');
+  if (!container) return;
+
+  const searchInput = document.getElementById('savedBomsSearchInput');
+  const filter = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+  const filtered = savedBomsCache.filter(b => {
+    if (!filter) return true;
+    const nameMatch = (b.name || '').toLowerCase().includes(filter);
+    const authorMatch = (b.createdBy || '').toLowerCase().includes(filter);
+    return nameMatch || authorMatch;
+  });
+
+  container.innerHTML = '';
+
+  if (filtered.length === 0) {
+    if (emptyState) emptyState.classList.remove('hidden');
+    return;
+  }
+
+  if (emptyState) emptyState.classList.add('hidden');
+
+  filtered.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'saved-bom-card';
+
+    const left = document.createElement('div');
+    left.className = 'saved-bom-card-left';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'saved-bom-card-name';
+    nameEl.textContent = b.name || 'Untitled Board';
+
+    const meta = document.createElement('div');
+    meta.className = 'saved-bom-card-meta';
+
+    const partsPill = document.createElement('span');
+    partsPill.className = 'saved-bom-pill pill-parts';
+    partsPill.textContent = `${b.itemsCount || 0} unique parts`;
+    meta.appendChild(partsPill);
+
+    const boardsPill = document.createElement('span');
+    boardsPill.className = 'saved-bom-pill';
+    boardsPill.textContent = `${b.boardsCount || 1} boards`;
+    meta.appendChild(boardsPill);
+
+    const authorPill = document.createElement('span');
+    authorPill.className = 'saved-bom-pill';
+    authorPill.textContent = `By ${b.createdBy || 'Admin'}`;
+    meta.appendChild(authorPill);
+
+    if (b.updatedAt) {
+      const dateSpan = document.createElement('span');
+      dateSpan.style.color = 'var(--text-muted)';
+      dateSpan.style.fontSize = '11px';
+      try {
+        const d = new Date(b.updatedAt);
+        dateSpan.textContent = `Updated: ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      } catch {
+        dateSpan.textContent = `Updated: ${b.updatedAt}`;
+      }
+      meta.appendChild(dateSpan);
+    }
+
+    left.appendChild(nameEl);
+    left.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'saved-bom-card-actions';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.className = 'btn-filled-primary ripple-btn saved-bom-btn-load';
+    loadBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14"></path>
+        <path d="M12 5l7 7-7 7"></path>
+      </svg>
+      <span>Load</span>
+    `;
+    loadBtn.title = `Load '${b.name}' into BOM Analyzer`;
+    loadBtn.addEventListener('click', () => onLoadSavedBomProject(b.name));
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-tonal-danger ripple-btn saved-bom-btn-del';
+    delBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+      <span>Delete</span>
+    `;
+    delBtn.title = `Delete '${b.name}' from database`;
+    delBtn.addEventListener('click', () => onDeleteSavedBomProject(b.name));
+
+    actions.appendChild(loadBtn);
+    actions.appendChild(delBtn);
+
+    card.appendChild(left);
+    card.appendChild(actions);
+
+    container.appendChild(card);
+  });
+}
+
+async function onLoadSavedBomProject(name) {
+  const res = await window.electronAPI.loadSavedBomProject(name);
+  if (!res.ok) {
+    await showAppDialog({
+      type: 'warning',
+      title: 'Load Failed',
+      message: res.error || `Could not load BOM project '${name}'.`
+    });
+    return;
+  }
+
+  const list = (res.items || []).map((c) =>
+    createComponent(c.mpn, Math.max(1, c.quantity || 1), c.componentType || c.type, c.value, c.footprint, '', c.customerCode)
+  );
+
+  bomItems = list;
+  const boardInput = document.getElementById('BomBoardNamelineEdit');
+  if (boardInput) boardInput.value = res.bom.name || name;
+
+  const boardsInput = document.getElementById('bomBoardsSpinBox');
+  if (boardsInput) boardsInput.value = res.bom.boardsCount || 1;
+
+  refreshBomAnalysis();
+  closeSavedBomsModal();
+  showToast(`Loaded '${res.bom.name}' (${bomItems.length} parts)`, 'success');
+}
+
+async function onDeleteSavedBomProject(name) {
+  const { response } = await showAppDialog({
+    type: 'question',
+    buttons: ['Delete Project', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    title: 'Delete Saved BOM',
+    message: `Are you sure you want to permanently delete the BOM project '${name}' from both local and online database?\n\nThis action cannot be undone.`
+  });
+
+  if (response !== 0) return;
+
+  const res = await window.electronAPI.deleteSavedBomProject(name);
+  if (!res.ok) {
+    await showAppDialog({
+      type: 'warning',
+      title: 'Delete Failed',
+      message: res.error || 'Could not delete BOM project.'
+    });
+    return;
+  }
+
+  showToast(`Deleted BOM project '${name}'`, 'info');
+  loadAndRenderSavedBoms();
 }
 
 // ============================================================================
@@ -1781,6 +2116,17 @@ let latestDownloadedFilePath = null;
  * @param {'account' | 'preferences' | 'database' | 'about'} tabKey
  */
 function switchSettingsTab(tabKey) {
+  const currentAuth = window.authController ? window.authController.getCurrentUser() : null;
+  const isAdmin = Boolean(currentAuth && (currentAuth.role === 'admin' || String(currentAuth.username).toLowerCase() === 'admin'));
+  const canManageDb = Boolean(currentAuth && (isAdmin || currentAuth.canManageDatabase));
+
+  if (tabKey === 'database' && !canManageDb) {
+    tabKey = 'account';
+  }
+  if (tabKey === 'permissions' && !isAdmin) {
+    tabKey = 'account';
+  }
+
   const tabs = ['account', 'preferences', 'database', 'about', 'permissions'];
   if (!tabs.includes(tabKey)) tabKey = 'account';
   currentSettingsTab = tabKey;
@@ -1812,6 +2158,7 @@ function applyUserPermissions(user) {
   const isAdmin = Boolean(user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin'));
   const canDeleteAll = Boolean(user && (isAdmin || user.canDeleteAll));
   const canModify = Boolean(user && (isAdmin || user.canModifyInventory));
+  const canManageDb = Boolean(user && (isAdmin || user.canManageDatabase));
 
   // 1. Settings tab for Permissions (Only for admin)
   const permBtn = document.getElementById('settingsTabBtnPermissions');
@@ -1822,7 +2169,16 @@ function applyUserPermissions(user) {
     }
   }
 
-  // 2. Clear All Button
+  // 2. Settings tab for Database (Only for admin and users with canManageDatabase)
+  const dbTabBtn = document.getElementById('settingsTabBtnDatabase');
+  if (dbTabBtn) {
+    dbTabBtn.classList.toggle('hidden', !canManageDb);
+    if (!canManageDb && currentSettingsTab === 'database') {
+      switchSettingsTab('account');
+    }
+  }
+
+  // 3. Clear All Button
   const cleanBtn = document.getElementById('cleanPushButton');
   if (cleanBtn) {
     if (canDeleteAll) {
@@ -1834,13 +2190,13 @@ function applyUserPermissions(user) {
     }
   }
 
-  // 3. View-Only Pill in header
+  // 4. View-Only Pill in header
   const readOnlyPill = document.getElementById('readOnlyModeBanner');
   if (readOnlyPill) {
     readOnlyPill.classList.toggle('hidden', canModify);
   }
 
-  // 4. Modifying action buttons
+  // 5. Modifying action buttons
   const modifyBtnIds = [
     'importPushButton',
     'savePushButton',
@@ -1869,7 +2225,7 @@ function applyUserPermissions(user) {
     }
   });
 
-  // 5. Account role badge
+  // 6. Account role badge
   const roleBadge = document.getElementById('settingsAccountRoleBadge');
   if (roleBadge) {
     if (user) {
@@ -2151,6 +2507,16 @@ async function openSettingsModal(preferredTab = 'account') {
   const modal = document.getElementById('dbSettingsModal');
   if (!modal) return;
 
+  const currentAuth = window.authController ? window.authController.getCurrentUser() : null;
+  applyUserPermissions(currentAuth);
+
+  const isAdmin = Boolean(currentAuth && (currentAuth.role === 'admin' || String(currentAuth.username).toLowerCase() === 'admin'));
+  const canManageDb = Boolean(currentAuth && (isAdmin || currentAuth.canManageDatabase));
+
+  if (preferredTab === 'database' && !canManageDb) {
+    preferredTab = 'account';
+  }
+
   switchSettingsTab(preferredTab);
 
   // Refresh active tab views
@@ -2158,8 +2524,8 @@ async function openSettingsModal(preferredTab = 'account') {
   await refreshPreferencesTab();
   await refreshAboutTab();
 
-  // Load MySQL Configuration into Database Tab
-  if (window.electronAPI && window.electronAPI.getMySQLConfig) {
+  // Load MySQL Configuration into Database Tab (only if authorized)
+  if (canManageDb && window.electronAPI && window.electronAPI.getMySQLConfig) {
     try {
       const cfg = await window.electronAPI.getMySQLConfig();
       const syncToggle = document.getElementById('dbEnableSyncToggle');
@@ -2655,13 +3021,15 @@ async function onSaveDatabaseSettings() {
   }
 }
 
-async function syncDatabaseWithUI() {
+async function syncDatabaseWithUI(mode = 'merge') {
   if (isSyncing) return;
   isSyncing = true;
 
   const dot = document.getElementById('dbStatusDot');
   const modalDot = document.getElementById('modalStatusDot');
   const syncBtn = document.getElementById('dbSyncBtn');
+  const pushBtn = document.getElementById('dbPushOverwriteBtn');
+  const pullBtn = document.getElementById('dbPullOverwriteBtn');
 
   if (dot) dot.className = 'db-status-dot dot-syncing';
   if (modalDot) modalDot.className = 'db-status-dot dot-syncing';
@@ -2669,13 +3037,17 @@ async function syncDatabaseWithUI() {
     syncBtn.disabled = true;
     syncBtn.textContent = 'Syncing...';
   }
+  if (pushBtn) pushBtn.disabled = true;
+  if (pullBtn) pullBtn.disabled = true;
 
   try {
-    const res = await window.electronAPI.syncMySQLNow(componentList);
+    const res = await window.electronAPI.syncMySQLNow(componentList, mode);
     if (syncBtn) {
       syncBtn.disabled = false;
-      syncBtn.textContent = 'Sync Now';
+      syncBtn.textContent = 'Sync Now (Merge)';
     }
+    if (pushBtn) pushBtn.disabled = false;
+    if (pullBtn) pullBtn.disabled = false;
 
     if (res.ok) {
       if (res.mergedComponents && res.mergedComponents.length) {
@@ -2687,16 +3059,18 @@ async function syncDatabaseWithUI() {
         // Also update local SQLite database with fresh merged data
         await window.electronAPI.saveDB(componentList);
       }
-      showToast(res.message);
+      showToast(res.message, 'success');
     } else {
-      showToast(res.message);
+      showToast(res.message, 'error');
     }
   } catch (err) {
     if (syncBtn) {
       syncBtn.disabled = false;
-      syncBtn.textContent = 'Sync Now';
+      syncBtn.textContent = 'Sync Now (Merge)';
     }
-    showToast('Sync error: ' + err.message);
+    if (pushBtn) pushBtn.disabled = false;
+    if (pullBtn) pullBtn.disabled = false;
+    showToast('Sync error: ' + err.message, 'error');
   } finally {
     isSyncing = false;
     await refreshDatabaseStatus();
@@ -3033,7 +3407,36 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // 11. BOM Manager Tab
   document.getElementById('ImportBomPushButton').addEventListener('click', onImportBomPushButtonClicked);
-  document.getElementById('loadSampleBomPushButton').addEventListener('click', onLoadSampleBomClicked);
+  const saveBomBtn = document.getElementById('saveBomPushButton');
+  if (saveBomBtn) {
+    saveBomBtn.addEventListener('click', onSaveBomPushButtonClicked);
+  }
+  const openSavedBomsBtn = document.getElementById('openSavedBomsPushButton');
+  if (openSavedBomsBtn) {
+    openSavedBomsBtn.addEventListener('click', openSavedBomsModal);
+  }
+  const closeSavedBomsBtn = document.getElementById('savedBomsModalCloseBtn');
+  if (closeSavedBomsBtn) {
+    closeSavedBomsBtn.addEventListener('click', closeSavedBomsModal);
+  }
+  const savedBomsModalEl = document.getElementById('savedBomsModal');
+  if (savedBomsModalEl) {
+    savedBomsModalEl.addEventListener('click', (e) => {
+      if (e.target === savedBomsModalEl) closeSavedBomsModal();
+    });
+  }
+  const refreshSavedBomsBtn = document.getElementById('refreshSavedBomsBtn');
+  if (refreshSavedBomsBtn) {
+    refreshSavedBomsBtn.addEventListener('click', loadAndRenderSavedBoms);
+  }
+  const savedBomsSearchInput = document.getElementById('savedBomsSearchInput');
+  if (savedBomsSearchInput) {
+    savedBomsSearchInput.addEventListener('input', renderSavedBomsList);
+  }
+  const assemblyListBtn = document.getElementById('exportAssemblyListPushButton');
+  if (assemblyListBtn) {
+    assemblyListBtn.addEventListener('click', onExportAssemblyListClicked);
+  }
   document.getElementById('exportBomReportPushButton').addEventListener('click', onExportBomReportClicked);
   document.getElementById('deductBomStockPushButton').addEventListener('click', onDeductBomStockClicked);
   document.getElementById('clearBomPushButton').addEventListener('click', onClearBomClicked);
@@ -3097,6 +3500,59 @@ window.addEventListener('DOMContentLoaded', async () => {
     applyUserPermissions(authUser);
     refreshAccountTab();
   };
+
+  // Immediate permissions application on DOM ready
+  const currentInitialUser = window.authController ? window.authController.getCurrentUser() : null;
+  applyUserPermissions(currentInitialUser);
+
+  // Mismatch Resolution Listeners
+  const pushOverwriteBtn = document.getElementById('dbPushOverwriteBtn');
+  if (pushOverwriteBtn) {
+    pushOverwriteBtn.addEventListener('click', async () => {
+      let proceed = false;
+      if (typeof window.showAppDialog === 'function') {
+        const { response } = await window.showAppDialog({
+          type: 'warning',
+          icon: 'warning',
+          buttons: ['Overwrite Cloud', 'Cancel'],
+          defaultId: 1,
+          cancelId: 1,
+          title: 'Overwrite Online Database?',
+          message: 'Are you sure you want to replace all components in the online MySQL database with your local inventory? Any components that exist only online will be removed from active inventory.'
+        });
+        proceed = (response === 0);
+      } else {
+        proceed = confirm('Overwrite online MySQL database with your local inventory?');
+      }
+      if (proceed) {
+        syncDatabaseWithUI('push');
+      }
+    });
+  }
+
+  const pullOverwriteBtn = document.getElementById('dbPullOverwriteBtn');
+  if (pullOverwriteBtn) {
+    pullOverwriteBtn.addEventListener('click', async () => {
+      let proceed = false;
+      if (typeof window.showAppDialog === 'function') {
+        const { response } = await window.showAppDialog({
+          type: 'warning',
+          icon: 'warning',
+          buttons: ['Overwrite Local', 'Cancel'],
+          defaultId: 1,
+          cancelId: 1,
+          title: 'Overwrite Local Inventory?',
+          message: 'Are you sure you want to replace your local inventory with the components currently in the online MySQL database? Any local components not yet synced to online will be replaced.'
+        });
+        proceed = (response === 0);
+      } else {
+        proceed = confirm('Overwrite local inventory with the online MySQL database?');
+      }
+      if (proceed) {
+        syncDatabaseWithUI('pull');
+      }
+    });
+  }
 
   // Password Visibility Toggle Eyes
   setupPasswordToggle('toggleChangeEmailPassBtn', 'changeEmailPasswordInput');

@@ -24,9 +24,14 @@
     dom = {
       // Gate Overlay & Forms
       overlay: document.getElementById('authGateOverlay'),
+      cardTitle: document.getElementById('authCardTitle'),
+      cardSubtitle: document.getElementById('authCardSubtitle'),
+      modePills: document.getElementById('authModePills'),
+      modeIndicator: document.getElementById('authModeIndicator'),
       tabLogin: document.getElementById('authTabLogin'),
       tabRegister: document.getElementById('authTabRegister'),
       feedbackBox: document.getElementById('authFeedbackBox'),
+      formsViewport: document.querySelector('.auth-forms-viewport'),
       loginForm: document.getElementById('authLoginForm'),
       registerForm: document.getElementById('authRegisterForm'),
       linkToRegister: document.getElementById('linkToRegister'),
@@ -124,35 +129,83 @@
   }
 
   /**
-   * Displays an alert or validation message inside the auth feedback box.
+   * Marks input element(s) with an error border and shake animation.
+   *
+   * @param {HTMLElement | HTMLElement[]} targets
+   */
+  function markInputError(targets) {
+    if (!targets) return;
+    const list = Array.isArray(targets) ? targets : [targets];
+    list.forEach((el) => {
+      if (!el) return;
+      const wrapper = el.closest('.auth-input-wrapper') || el;
+      wrapper.classList.remove('has-error', 'auth-shake');
+      void wrapper.offsetWidth;
+      wrapper.classList.add('has-error', 'auth-shake');
+    });
+  }
+
+  /**
+   * Clears error highlights from all auth input wrappers.
+   */
+  function clearAllInputErrors() {
+    const errorWrappers = document.querySelectorAll('.auth-input-wrapper.has-error');
+    errorWrappers.forEach((w) => w.classList.remove('has-error', 'auth-shake'));
+  }
+
+  /**
+   * Displays an alert or validation message inside the auth feedback box with vivid red styling on error.
    *
    * @param {string} message
    * @param {'error' | 'success'} type
+   * @param {HTMLElement | HTMLElement[] | null} targetInput
    */
-  function showFeedback(message, type = 'error') {
+  function showFeedback(message, type = 'error', targetInput = null) {
     if (!dom.feedbackBox) return;
-    dom.feedbackBox.textContent = message;
-    dom.feedbackBox.className = `auth-feedback-box ${type === 'success' ? 'success-banner' : 'error-banner'}`;
+    clearAllInputErrors();
+
+    if (targetInput) {
+      markInputError(targetInput);
+    }
+
+    const isError = type === 'error';
+    const iconSvg = isError
+      ? '<svg class="auth-feedback-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+      : '<svg class="auth-feedback-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+
+    dom.feedbackBox.innerHTML = `${iconSvg}<span class="auth-feedback-text">${escapeHtml(message)}</span>`;
+    dom.feedbackBox.className = `auth-feedback-box ${isError ? 'feedback-error error-banner' : 'feedback-success success-banner'}`;
     dom.feedbackBox.classList.remove('hidden');
+
+    if (isError) {
+      dom.feedbackBox.classList.remove('auth-shake');
+      void dom.feedbackBox.offsetWidth;
+      dom.feedbackBox.classList.add('auth-shake');
+    }
   }
 
   /**
-   * Hides the auth feedback box.
+   * Hides the auth feedback box and clears input error highlights.
    */
   function clearFeedback() {
     if (!dom.feedbackBox) return;
-    dom.feedbackBox.textContent = '';
+    dom.feedbackBox.innerHTML = '';
     dom.feedbackBox.className = 'auth-feedback-box hidden';
+    clearAllInputErrors();
   }
 
   /**
-   * Switches between the 'login' and 'register' views.
+   * Switches between the 'login' and 'register' views with smooth animations.
    *
    * @param {'login' | 'register'} mode
    */
   function switchAuthTab(mode) {
     clearFeedback();
     const isLogin = mode === 'login';
+
+    if (dom.modePills) {
+      dom.modePills.classList.toggle('register-active', !isLogin);
+    }
 
     if (dom.tabLogin && dom.tabRegister) {
       dom.tabLogin.classList.toggle('active', isLogin);
@@ -161,16 +214,49 @@
       dom.tabRegister.setAttribute('aria-selected', !isLogin ? 'true' : 'false');
     }
 
-    if (dom.loginForm && dom.registerForm) {
-      dom.loginForm.classList.toggle('hidden', !isLogin);
-      dom.registerForm.classList.toggle('hidden', isLogin);
+    if (dom.cardTitle && dom.cardSubtitle) {
+      dom.cardTitle.style.opacity = '0';
+      dom.cardSubtitle.style.opacity = '0';
+      setTimeout(() => {
+        if (isLogin) {
+          dom.cardTitle.textContent = 'Welcome Back';
+          dom.cardSubtitle.textContent = 'Sign in to manage and audit your electronics inventory';
+        } else {
+          dom.cardTitle.textContent = 'Create Account';
+          dom.cardSubtitle.textContent = 'Join the workspace to manage lab inventory';
+        }
+        dom.cardTitle.style.opacity = '1';
+        dom.cardSubtitle.style.opacity = '1';
+      }, 100);
     }
 
-    if (isLogin && dom.loginUsername) {
-      dom.loginUsername.focus();
-    } else if (!isLogin && dom.regUsername) {
-      dom.regUsername.focus();
+    if (dom.loginForm && dom.registerForm) {
+      if (isLogin) {
+        dom.registerForm.classList.add('hidden');
+        dom.registerForm.classList.remove('slide-in-right', 'slide-in-left');
+
+        dom.loginForm.classList.remove('hidden');
+        dom.loginForm.classList.remove('slide-in-right', 'slide-in-left');
+        void dom.loginForm.offsetWidth;
+        dom.loginForm.classList.add('slide-in-left');
+      } else {
+        dom.loginForm.classList.add('hidden');
+        dom.loginForm.classList.remove('slide-in-right', 'slide-in-left');
+
+        dom.registerForm.classList.remove('hidden');
+        dom.registerForm.classList.remove('slide-in-right', 'slide-in-left');
+        void dom.registerForm.offsetWidth;
+        dom.registerForm.classList.add('slide-in-right');
+      }
     }
+
+    setTimeout(() => {
+      if (isLogin && dom.loginUsername) {
+        dom.loginUsername.focus();
+      } else if (!isLogin && dom.regUsername) {
+        dom.regUsername.focus();
+      }
+    }, 120);
   }
 
   /**
@@ -248,18 +334,18 @@
     const password = dom.loginPassword ? dom.loginPassword.value : '';
 
     if (!username) {
-      showFeedback('Please enter your username or email.');
+      showFeedback('Please enter your username or email.', 'error', dom.loginUsername);
       if (dom.loginUsername) dom.loginUsername.focus();
       return;
     }
     if (!password) {
-      showFeedback('Please enter your password.');
+      showFeedback('Please enter your password.', 'error', dom.loginPassword);
       if (dom.loginPassword) dom.loginPassword.focus();
       return;
     }
 
     if (!window.electronAPI || !window.electronAPI.loginUser) {
-      showFeedback('Authentication service is not available.');
+      showFeedback('Authentication service is not available.', 'error');
       return;
     }
 
@@ -273,7 +359,10 @@
     try {
       const res = await window.electronAPI.loginUser({ username, password });
       if (!res.ok) {
-        showFeedback(res.error || 'Login failed. Please check your credentials.');
+        const errMsg = res.error || 'Incorrect username or password. Please try again.';
+        const isUserNotFound = /user|account|find/i.test(errMsg) && !/password/i.test(errMsg);
+        const errorInput = isUserNotFound ? dom.loginUsername : dom.loginPassword;
+        showFeedback(errMsg, 'error', errorInput);
         if (dom.loginPassword) {
           dom.loginPassword.value = '';
           dom.loginPassword.focus();
@@ -282,10 +371,11 @@
       }
 
       // Success
+      clearAllInputErrors();
       setSessionUser(res.user);
       if (dom.loginPassword) dom.loginPassword.value = '';
     } catch (err) {
-      showFeedback(`Login error: ${err.message}`);
+      showFeedback(`Login error: ${err.message}`, 'error', dom.loginPassword);
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -307,29 +397,29 @@
 
     // Validation
     if (!username || username.length < 3) {
-      showFeedback('Username must be at least 3 characters long.');
+      showFeedback('Username must be at least 3 characters long.', 'error', dom.regUsername);
       if (dom.regUsername) dom.regUsername.focus();
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-      showFeedback('Please enter a valid email address.');
+      showFeedback('Please enter a valid email address.', 'error', dom.regEmail);
       if (dom.regEmail) dom.regEmail.focus();
       return;
     }
     if (!password || password.length < 4) {
-      showFeedback('Password must be at least 4 characters long.');
+      showFeedback('Password must be at least 4 characters long.', 'error', dom.regPassword);
       if (dom.regPassword) dom.regPassword.focus();
       return;
     }
     if (password !== confirmPassword) {
-      showFeedback('Passwords do not match. Please re-type your password.');
+      showFeedback('Passwords do not match. Please re-type your password.', 'error', [dom.regPassword, dom.regConfirmPassword]);
       if (dom.regConfirmPassword) dom.regConfirmPassword.focus();
       return;
     }
 
     if (!window.electronAPI || !window.electronAPI.registerUser) {
-      showFeedback('Authentication service is not available.');
+      showFeedback('Authentication service is not available.', 'error');
       return;
     }
 
@@ -343,16 +433,19 @@
     try {
       const res = await window.electronAPI.registerUser({ username, email, password });
       if (!res.ok) {
-        showFeedback(res.error || 'Registration failed.');
+        const errMsg = res.error || 'Registration failed.';
+        const target = /email/i.test(errMsg) ? dom.regEmail : (/username/i.test(errMsg) ? dom.regUsername : null);
+        showFeedback(errMsg, 'error', target);
         return;
       }
 
       // Success - user is registered and logged in
+      clearAllInputErrors();
       setSessionUser(res.user);
       if (dom.regPassword) dom.regPassword.value = '';
       if (dom.regConfirmPassword) dom.regConfirmPassword.value = '';
     } catch (err) {
-      showFeedback(`Registration error: ${err.message}`);
+      showFeedback(`Registration error: ${err.message}`, 'error');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -514,6 +607,26 @@
    * Binds all DOM event listeners.
    */
   function setupEventListeners() {
+    // Auto-clear input error highlights when typing
+    const allAuthInputs = [
+      dom.loginUsername,
+      dom.loginPassword,
+      dom.regUsername,
+      dom.regEmail,
+      dom.regPassword,
+      dom.regConfirmPassword
+    ];
+    allAuthInputs.forEach((inputEl) => {
+      if (inputEl) {
+        inputEl.addEventListener('input', () => {
+          const wrapper = inputEl.closest('.auth-input-wrapper');
+          if (wrapper && wrapper.classList.contains('has-error')) {
+            wrapper.classList.remove('has-error', 'auth-shake');
+          }
+        });
+      }
+    });
+
     // Mode Pills
     if (dom.tabLogin) {
       dom.tabLogin.addEventListener('click', () => switchAuthTab('login'));

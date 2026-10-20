@@ -78,7 +78,8 @@
         <p id="authCardSubtitle" class="auth-card-subtitle">Sign in to manage and audit your electronics inventory</p>
 
         <!-- Segmented Mode Pills (Sign In / Register) -->
-        <div class="auth-mode-pills" role="tablist">
+        <div id="authModePills" class="auth-mode-pills" role="tablist">
+          <span id="authModeIndicator" class="auth-mode-indicator" aria-hidden="true"></span>
           <button id="authTabLogin" class="auth-mode-pill active ripple-btn" type="button" role="tab" aria-selected="true">Sign In</button>
           <button id="authTabRegister" class="auth-mode-pill ripple-btn" type="button" role="tab" aria-selected="false">Create Account</button>
         </div>
@@ -87,7 +88,9 @@
       <!-- Feedback / Error Banner -->
       <div id="authFeedbackBox" class="auth-feedback-box hidden" role="alert"></div>
 
-      <!-- 1. Sign In Form -->
+      <!-- Animated Forms Viewport -->
+      <div class="auth-forms-viewport">
+        <!-- 1. Sign In Form -->
       <form id="authLoginForm" class="auth-form" autocomplete="on" onsubmit="return false;">
         <div class="auth-field-group">
           <label for="loginUsernameInput">Username or Email</label>
@@ -184,6 +187,7 @@
           <button type="button" class="auth-link-btn" id="linkToLogin">Sign in here</button>
         </div>
       </form>
+      </div>
     </div>
   </div>
 
@@ -614,13 +618,38 @@
                 </button>
 
                 <button
-                  id="loadSampleBomPushButton"
-                  class="btn-tonal ripple-btn toolbar-action-btn action-sample"
+                  id="saveBomPushButton"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-save"
                   type="button"
-                  title="Load a sample board BOM to test availability &amp; stock deduction"
+                  title="Save current BOM project to local SQLite and online MySQL database"
+                  disabled
+                >
+                  <img src="../../assets/Images/save_9584668.png" alt="" class="btn-icon" />
+                  <span>Save BOM</span>
+                </button>
+
+                <button
+                  id="openSavedBomsPushButton"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-saved-boms"
+                  type="button"
+                  title="Browse, load, and manage saved BOM projects in the database"
+                >
+                  <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                  <span>Saved BOMs</span>
+                </button>
+
+                <button
+                  id="exportAssemblyListPushButton"
+                  class="btn-tonal ripple-btn toolbar-action-btn action-assembly"
+                  type="button"
+                  title="Export assembly component pick list with required quantities for the assigned number of boards"
+                  disabled
                 >
                   <img src="../../assets/Images/package_6215997.png" alt="" class="btn-icon" />
-                  <span>Sample BOM</span>
+                  <span>Export Assembly List</span>
                 </button>
 
                 <button
@@ -716,7 +745,12 @@
           <h2 id="dbModalTitle" class="modal-title">Settings</h2>
           <p class="modal-subtitle">Manage account, preferences, database, and application updates.</p>
         </div>
-        <button id="dbModalCloseBtn" class="modal-close-btn" type="button" aria-label="Close settings">&times;</button>
+        <button id="dbModalCloseBtn" class="modal-close-btn" type="button" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <!-- Settings Layout: Clean Vertical Tab Bar + Content Area -->
@@ -729,7 +763,7 @@
           <button type="button" class="simple-tab-btn ripple-btn" role="tab" id="settingsTabBtnPreferences" aria-selected="false" aria-controls="settingsPanelPreferences" data-tab="preferences">
             Application
           </button>
-          <button type="button" class="simple-tab-btn ripple-btn" role="tab" id="settingsTabBtnDatabase" aria-selected="false" aria-controls="settingsPanelDatabase" data-tab="database">
+          <button type="button" class="simple-tab-btn ripple-btn hidden" role="tab" id="settingsTabBtnDatabase" aria-selected="false" aria-controls="settingsPanelDatabase" data-tab="database">
             Database
           </button>
           <button type="button" class="simple-tab-btn ripple-btn" role="tab" id="settingsTabBtnAbout" aria-selected="false" aria-controls="settingsPanelAbout" data-tab="about">
@@ -952,8 +986,19 @@
 
               <div class="simple-form-actions">
                 <button id="dbTestBtn" class="btn-outlined ripple-btn" type="button">Test Connection</button>
-                <button id="dbSyncBtn" class="btn-tonal-teal ripple-btn" type="button">Sync Now</button>
+                <button id="dbSyncBtn" class="btn-tonal-teal ripple-btn" type="button" title="Two-way smart merge between local and online database">Sync Now (Merge)</button>
                 <button id="dbSaveBtn" class="btn-filled-primary ripple-btn" type="button">Save &amp; Connect</button>
+              </div>
+
+              <!-- Mismatch Resolution Actions -->
+              <div class="db-sync-resolution-box" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                  <span>Resolve Local vs Online Data Mismatch:</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button id="dbPushOverwriteBtn" class="btn-outlined btn-sm ripple-btn" type="button" title="Upload all local inventory components and overwrite cloud database">Upload Local &rarr; Cloud (Overwrite Cloud)</button>
+                  <button id="dbPullOverwriteBtn" class="btn-outlined btn-sm ripple-btn" type="button" title="Download all cloud components and overwrite local database">Download Cloud &rarr; Local (Overwrite Local)</button>
+                </div>
               </div>
             </div>
 
@@ -1079,6 +1124,7 @@
                   <strong>Permission Controls:</strong>
                   <div>&bull; <strong>Delete All:</strong> Allows clearing the entire inventory table from the database.</div>
                   <div>&bull; <strong>Modify Inventory:</strong> If disabled, user enters <em>Explore / View-Only Mode</em> and cannot add, edit, delete, or import parts.</div>
+                  <div>&bull; <strong>Manage Database:</strong> Allows viewing and configuring online MySQL database settings &amp; synchronization.</div>
                   <div>&bull; <strong>admin</strong> has permanent full access.</div>
                 </div>
               </div>
@@ -1092,6 +1138,7 @@
                       <th>Role</th>
                       <th style="text-align: center;">Delete All Data</th>
                       <th style="text-align: center;">Modify Inventory</th>
+                      <th style="text-align: center;">Manage Database</th>
                       <th>Access Level</th>
                     </tr>
                   </thead>
@@ -1123,7 +1170,12 @@
             <p class="modal-subtitle">Real-time audit log of every component modification, user, and date/time.</p>
           </div>
         </div>
-        <button id="auditModalCloseBtn" class="modal-close-btn ripple-btn" type="button" aria-label="Close modal">&times;</button>
+        <button id="auditModalCloseBtn" class="modal-close-btn ripple-btn" type="button" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <div class="audit-modal-toolbar">
@@ -1173,6 +1225,55 @@
       <div class="modal-actions audit-modal-actions">
         <span class="audit-footer-count" id="auditRowCount">Showing 0 entries</span>
         <button id="auditModalDoneBtn" class="btn-filled-primary ripple-btn" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved BOM Projects Modal (Local SQLite & Online MySQL) -->
+  <div id="savedBomsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="savedBomsModalTitle">
+    <div class="modal-card saved-boms-modal">
+      <div class="modal-header saved-boms-modal-header">
+        <div>
+          <h2 id="savedBomsModalTitle" class="modal-title">Saved BOM Projects</h2>
+          <p class="modal-subtitle">Browse, load, and manage board projects stored in local SQLite &amp; online MySQL.</p>
+        </div>
+        <button id="savedBomsModalCloseBtn" class="modal-close-btn" type="button" aria-label="Close saved BOMs">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="saved-boms-toolbar">
+        <div class="saved-boms-search-wrap">
+          <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="savedBomsSearchInput" type="search" placeholder="Search saved projects by name or author..." autocomplete="off" />
+        </div>
+        <button id="refreshSavedBomsBtn" class="btn-tonal ripple-btn saved-boms-refresh-btn" type="button" title="Refresh project list from database">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      <div class="saved-boms-body">
+        <div id="savedBomsListContainer" class="saved-boms-cards-list"></div>
+        <div id="savedBomsEmptyState" class="saved-boms-empty hidden">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <h3>No Saved BOM Projects Found</h3>
+          <p>Import a BOM spreadsheet and click <strong>Save BOM</strong> to store it locally and online.</p>
+        </div>
       </div>
     </div>
   </div>

@@ -48,6 +48,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportBomReportDB: (payload) => ipcRenderer.invoke('db:export-bom-report', payload),
 
   /**
+   * Opens a native dialog to export an Assembly Component Pick List as Excel (.xlsx) or CSV.
+   */
+  exportAssemblyList: (payload) => ipcRenderer.invoke('db:export-assembly-list', payload),
+
+  /**
+   * Saves current BOM project to local SQLite and online MySQL database.
+   */
+  saveBomProject: (payload) => ipcRenderer.invoke('bom:save-project', payload),
+
+  /**
+   * Fetches the list of all saved BOM projects.
+   */
+  listSavedBoms: () => ipcRenderer.invoke('bom:list-saved'),
+
+  /**
+   * Loads a saved BOM project with items by name or ID.
+   */
+  loadSavedBomProject: (name) => ipcRenderer.invoke('bom:load-project', name),
+
+  /**
+   * Deletes a saved BOM project from local SQLite and online MySQL.
+   */
+  deleteSavedBomProject: (name) => ipcRenderer.invoke('bom:delete-project', name),
+
+  /**
+   * Syncs BOM projects between local and remote MySQL.
+   */
+  syncSavedBoms: () => ipcRenderer.invoke('bom:sync-remote'),
+
+  /**
    * Updates application dirty state (controls window title asterisk and close guard).
    * @param {boolean} isDirty
    * @returns {Promise<boolean>}
@@ -106,7 +136,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /**
    * Triggers two-way synchronization between local SQLite and remote MySQL.
    */
-  syncMySQLNow: (components) => ipcRenderer.invoke('mysql:sync-now', components),
+  syncMySQLNow: (components, mode) => ipcRenderer.invoke('mysql:sync-now', components, mode),
 
   /**
    * Minimizes the frameless window.

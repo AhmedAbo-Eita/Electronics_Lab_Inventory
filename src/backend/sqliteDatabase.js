@@ -97,7 +97,7 @@ function ensureSchema(db) {
   const schemaSql = `
     CREATE TABLE IF NOT EXISTS lab_inventory (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      mpn TEXT NOT NULL UNIQUE,
+      mpn TEXT NOT NULL,
       quantity INTEGER NOT NULL DEFAULT 0,
       component_type TEXT DEFAULT '',
       value TEXT DEFAULT '',
@@ -117,6 +117,7 @@ function ensureSchema(db) {
       role TEXT DEFAULT 'user',
       can_delete_all INTEGER DEFAULT 0,
       can_modify_inventory INTEGER DEFAULT 1,
+      can_manage_database INTEGER DEFAULT 0,
       last_login DATETIME DEFAULT NULL,
       last_failed_login DATETIME DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -135,6 +136,31 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_audit_changed_at ON inventory_audit_log(changed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_audit_username ON inventory_audit_log(username);
     CREATE INDEX IF NOT EXISTS idx_audit_mpn ON inventory_audit_log(mpn);
+
+    CREATE TABLE IF NOT EXISTS saved_boms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      boards_count INTEGER NOT NULL DEFAULT 1,
+      items_count INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_saved_boms_name ON saved_boms(name);
+
+    CREATE TABLE IF NOT EXISTS saved_bom_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bom_id INTEGER NOT NULL,
+      mpn TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      component_type TEXT DEFAULT '',
+      value TEXT DEFAULT '',
+      footprint TEXT DEFAULT '',
+      customer_code TEXT DEFAULT '',
+      FOREIGN KEY (bom_id) REFERENCES saved_boms(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_saved_bom_items_bom ON saved_bom_items(bom_id);
+    CREATE INDEX IF NOT EXISTS idx_saved_bom_items_mpn ON saved_bom_items(mpn);
   `;
   db.run(schemaSql);
 
@@ -142,6 +168,41 @@ function ensureSchema(db) {
   try { db.run("ALTER TABLE lab_users ADD COLUMN role TEXT DEFAULT 'user';"); } catch {}
   try { db.run("ALTER TABLE lab_users ADD COLUMN can_delete_all INTEGER DEFAULT 0;"); } catch {}
   try { db.run("ALTER TABLE lab_users ADD COLUMN can_modify_inventory INTEGER DEFAULT 1;"); } catch {}
+  try { db.run("ALTER TABLE lab_users ADD COLUMN can_manage_database INTEGER DEFAULT 0;"); } catch {}
+  try { db.run("ALTER TABLE saved_boms ADD COLUMN boards_count INTEGER DEFAULT 1;"); } catch {}
+  try { db.run("ALTER TABLE saved_boms ADD COLUMN items_count INTEGER DEFAULT 0;"); } catch {}
+  try { db.run("ALTER TABLE saved_boms ADD COLUMN created_by TEXT DEFAULT '';"); } catch {}
+
+  // Schema migration: allow duplicate MPNs across different locations/rows
+  try {
+    const tableSql = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_inventory';");
+    if (tableSql && tableSql.length > 0 && tableSql[0].values.length > 0) {
+      const sqlText = String(tableSql[0].values[0][0] || '');
+      if (sqlText.includes('mpn TEXT NOT NULL UNIQUE') || sqlText.includes('UNIQUE(mpn)') || sqlText.includes('UNIQUE (mpn)')) {
+        db.run(`
+          CREATE TABLE lab_inventory_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mpn TEXT NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 0,
+            component_type TEXT DEFAULT '',
+            value TEXT DEFAULT '',
+            footprint TEXT DEFAULT '',
+            location TEXT DEFAULT '',
+            customer_code TEXT DEFAULT '',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          INSERT INTO lab_inventory_v2 (id, mpn, quantity, component_type, value, footprint, location, customer_code, updated_at)
+            SELECT id, mpn, quantity, component_type, value, footprint, location, customer_code, updated_at FROM lab_inventory;
+          DROP TABLE lab_inventory;
+          ALTER TABLE lab_inventory_v2 RENAME TO lab_inventory;
+          CREATE INDEX IF NOT EXISTS idx_inventory_mpn ON lab_inventory(mpn);
+          CREATE INDEX IF NOT EXISTS idx_inventory_type ON lab_inventory(component_type);
+        `);
+      }
+    }
+  } catch (migErr) {
+    console.warn('SQLite inventory migration notice:', migErr.message);
+  }
 }
 
 /**
@@ -513,7 +574,7 @@ async function getUserByUsername(username) {
   const clean = String(username || '').trim();
   if (!clean) return null;
 
-  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, last_login, last_failed_login, created_at FROM lab_users WHERE username = ? COLLATE NOCASE LIMIT 1;');
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, can_manage_database, last_login, last_failed_login, created_at FROM lab_users WHERE username = ? COLLATE NOCASE LIMIT 1;');
   stmt.bind([clean]);
   let user = null;
   if (stmt.step()) {
@@ -527,9 +588,10 @@ async function getUserByUsername(username) {
       role: isRootAdmin ? 'admin' : (row[4] || 'user'),
       canDeleteAll: isRootAdmin ? 1 : (row[5] ? 1 : 0),
       canModifyInventory: isRootAdmin ? 1 : (row[6] !== undefined && row[6] !== null ? (row[6] ? 1 : 0) : 1),
-      lastLogin: row[7],
-      lastFailedLogin: row[8],
-      createdAt: row[9]
+      canManageDatabase: isRootAdmin ? 1 : (row[7] ? 1 : 0),
+      lastLogin: row[8],
+      lastFailedLogin: row[9],
+      createdAt: row[10]
     };
   }
   stmt.free();
@@ -544,7 +606,7 @@ async function getUserByEmail(email) {
   const clean = String(email || '').trim().toLowerCase();
   if (!clean) return null;
 
-  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, last_login, last_failed_login, created_at FROM lab_users WHERE email = ? COLLATE NOCASE LIMIT 1;');
+  const stmt = activeDb.prepare('SELECT id, username, email, password_hash, role, can_delete_all, can_modify_inventory, can_manage_database, last_login, last_failed_login, created_at FROM lab_users WHERE email = ? COLLATE NOCASE LIMIT 1;');
   stmt.bind([clean]);
   let user = null;
   if (stmt.step()) {
@@ -558,9 +620,10 @@ async function getUserByEmail(email) {
       role: isRootAdmin ? 'admin' : (row[4] || 'user'),
       canDeleteAll: isRootAdmin ? 1 : (row[5] ? 1 : 0),
       canModifyInventory: isRootAdmin ? 1 : (row[6] !== undefined && row[6] !== null ? (row[6] ? 1 : 0) : 1),
-      lastLogin: row[7],
-      lastFailedLogin: row[8],
-      createdAt: row[9]
+      canManageDatabase: isRootAdmin ? 1 : (row[7] ? 1 : 0),
+      lastLogin: row[8],
+      lastFailedLogin: row[9],
+      createdAt: row[10]
     };
   }
   stmt.free();
@@ -570,7 +633,7 @@ async function getUserByEmail(email) {
 /**
  * Creates a new user record in SQLite.
  */
-async function createUser({ username, email, passwordHash, role = 'user', canDeleteAll = 0, canModifyInventory = 1 }) {
+async function createUser({ username, email, passwordHash, role = 'user', canDeleteAll = 0, canModifyInventory = 1, canManageDatabase = 0 }) {
   if (!activeDb) await initSQLiteDatabase();
   const cleanUser = String(username || '').trim();
   const cleanEmail = String(email || '').trim().toLowerCase();
@@ -578,13 +641,14 @@ async function createUser({ username, email, passwordHash, role = 'user', canDel
   const cleanRole = isRootAdmin ? 'admin' : String(role || 'user').trim().toLowerCase();
   const cleanDeleteAll = isRootAdmin ? 1 : (canDeleteAll ? 1 : 0);
   const cleanModify = isRootAdmin ? 1 : (canModifyInventory ? 1 : 0);
+  const cleanManageDb = isRootAdmin ? 1 : (canManageDatabase ? 1 : 0);
 
   try {
     const insertStmt = activeDb.prepare(`
-      INSERT INTO lab_users (username, email, password_hash, role, can_delete_all, can_modify_inventory, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'));
+      INSERT INTO lab_users (username, email, password_hash, role, can_delete_all, can_modify_inventory, can_manage_database, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'));
     `);
-    insertStmt.run([cleanUser, cleanEmail, passwordHash, cleanRole, cleanDeleteAll, cleanModify]);
+    insertStmt.run([cleanUser, cleanEmail, passwordHash, cleanRole, cleanDeleteAll, cleanModify, cleanManageDb]);
     insertStmt.free();
     flushToDisk(activeDb);
     return {
@@ -594,7 +658,8 @@ async function createUser({ username, email, passwordHash, role = 'user', canDel
         email: cleanEmail,
         role: cleanRole,
         canDeleteAll: cleanDeleteAll,
-        canModifyInventory: cleanModify
+        canModifyInventory: cleanModify,
+        canManageDatabase: cleanManageDb
       }
     };
   } catch (err) {
@@ -685,24 +750,33 @@ async function updateUserPassword(username, newPasswordHash) {
 
 /**
  * Retrieves all registered users with their roles and permissions.
+ * @param {boolean} [includePasswordHash=false]
  */
-async function getAllUsers() {
+async function getAllUsers(includePasswordHash = false) {
   if (!activeDb) await initSQLiteDatabase();
-  const stmt = activeDb.prepare('SELECT id, username, email, role, can_delete_all, can_modify_inventory, last_login, created_at FROM lab_users ORDER BY id ASC;');
+  const sql = includePasswordHash
+    ? 'SELECT id, username, email, role, can_delete_all, can_modify_inventory, can_manage_database, last_login, created_at, password_hash FROM lab_users ORDER BY id ASC;'
+    : 'SELECT id, username, email, role, can_delete_all, can_modify_inventory, can_manage_database, last_login, created_at FROM lab_users ORDER BY id ASC;';
+  const stmt = activeDb.prepare(sql);
   const users = [];
   while (stmt.step()) {
     const row = stmt.get();
     const isRootAdmin = String(row[1]).toLowerCase() === 'admin';
-    users.push({
+    const u = {
       id: row[0],
       username: row[1],
       email: row[2],
       role: isRootAdmin ? 'admin' : (row[3] || 'user'),
       canDeleteAll: isRootAdmin ? 1 : (row[4] ? 1 : 0),
       canModifyInventory: isRootAdmin ? 1 : (row[5] !== undefined && row[5] !== null ? (row[5] ? 1 : 0) : 1),
-      lastLogin: row[6],
-      createdAt: row[7]
-    });
+      canManageDatabase: isRootAdmin ? 1 : (row[6] ? 1 : 0),
+      lastLogin: row[7],
+      createdAt: row[8]
+    };
+    if (includePasswordHash) {
+      u.passwordHash = row[9];
+    }
+    users.push(u);
   }
   stmt.free();
   return users;
@@ -711,29 +785,31 @@ async function getAllUsers() {
 /**
  * Updates permissions (can_delete_all, can_modify_inventory, role) for a user.
  */
-async function updateUserPermissions(username, { role, canDeleteAll, canModifyInventory } = {}) {
+async function updateUserPermissions(username, { role, canDeleteAll, canModifyInventory, canManageDatabase } = {}) {
   if (!activeDb) await initSQLiteDatabase();
   const clean = String(username || '').trim();
   if (!clean) return { ok: false, error: 'Username is required.' };
 
   const isRootAdmin = clean.toLowerCase() === 'admin';
+  const existing = await getUserByUsername(clean);
+
   let newRole = 'user';
   if (isRootAdmin) {
     newRole = 'admin';
   } else if (role) {
     newRole = String(role).trim().toLowerCase();
   } else {
-    const existing = await getUserByUsername(clean);
     newRole = existing && existing.role ? existing.role : 'user';
   }
-  const newCanDelete = isRootAdmin ? 1 : (canDeleteAll ? 1 : 0);
-  const newCanModify = isRootAdmin ? 1 : (canModifyInventory ? 1 : 0);
+  const newCanDelete = isRootAdmin ? 1 : (canDeleteAll !== undefined ? (canDeleteAll ? 1 : 0) : (existing && existing.canDeleteAll ? 1 : 0));
+  const newCanModify = isRootAdmin ? 1 : (canModifyInventory !== undefined ? (canModifyInventory ? 1 : 0) : (existing && existing.canModifyInventory ? 1 : 0));
+  const newCanManageDb = isRootAdmin ? 1 : (canManageDatabase !== undefined ? (canManageDatabase ? 1 : 0) : (existing && existing.canManageDatabase ? 1 : 0));
 
   try {
     const stmt = activeDb.prepare(
-      `UPDATE lab_users SET role = ?, can_delete_all = ?, can_modify_inventory = ? WHERE username = ? COLLATE NOCASE;`
+      `UPDATE lab_users SET role = ?, can_delete_all = ?, can_modify_inventory = ?, can_manage_database = ? WHERE username = ? COLLATE NOCASE;`
     );
-    stmt.run([newRole, newCanDelete, newCanModify, clean]);
+    stmt.run([newRole, newCanDelete, newCanModify, newCanManageDb, clean]);
     stmt.free();
     flushToDisk(activeDb);
     return {
@@ -742,7 +818,8 @@ async function updateUserPermissions(username, { role, canDeleteAll, canModifyIn
         username: clean,
         role: newRole,
         canDeleteAll: newCanDelete,
-        canModifyInventory: newCanModify
+        canModifyInventory: newCanModify,
+        canManageDatabase: newCanManageDb
       }
     };
   } catch (err) {
@@ -850,6 +927,428 @@ async function getAuditLogs({ limit = 100, search = '', action = '' } = {}) {
   }
 }
 
+/**
+ * Saves or updates a project BOM and its items in SQLite.
+ *
+ * @param {Object} params
+ * @param {string} params.name Project/Board name
+ * @param {number} params.boardsCount Multiplier (boards to build)
+ * @param {Array} params.items Component rows [{ mpn, quantity, componentType, value, footprint, customerCode }]
+ * @param {string} params.username User who saved the BOM
+ * @returns {Promise<{ ok: boolean, bomId?: number, name?: string, itemsCount?: number, error?: string }>}
+ */
+async function saveBomProject({ name, boardsCount = 1, items = [], username = '' }) {
+  if (!activeDb) await initSQLiteDatabase();
+  const cleanName = String(name || '').trim();
+  if (!cleanName) {
+    return { ok: false, error: 'BOM Project name cannot be empty.' };
+  }
+  const count = Math.max(1, Number(boardsCount) || 1);
+  const author = String(username || '').trim();
+  const validItems = Array.isArray(items) ? items.filter(it => it && it.mpn && String(it.mpn).trim()) : [];
+
+  try {
+    activeDb.run('BEGIN TRANSACTION;');
+
+    let bomId = null;
+    const findStmt = activeDb.prepare('SELECT id FROM saved_boms WHERE name = ? COLLATE NOCASE LIMIT 1;');
+    findStmt.bind([cleanName]);
+    if (findStmt.step()) {
+      bomId = findStmt.get()[0];
+    }
+    findStmt.free();
+
+    if (bomId) {
+      const updateStmt = activeDb.prepare(`
+        UPDATE saved_boms
+        SET boards_count = ?, items_count = ?, created_by = CASE WHEN ? != '' THEN ? ELSE created_by END, updated_at = datetime('now')
+        WHERE id = ?;
+      `);
+      updateStmt.run([count, validItems.length, author, author, bomId]);
+      updateStmt.free();
+
+      const delStmt = activeDb.prepare('DELETE FROM saved_bom_items WHERE bom_id = ?;');
+      delStmt.run([bomId]);
+      delStmt.free();
+    } else {
+      const insertStmt = activeDb.prepare(`
+        INSERT INTO saved_boms (name, boards_count, items_count, created_by, created_at, updated_at)
+        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'));
+      `);
+      insertStmt.run([cleanName, count, validItems.length, author]);
+      insertStmt.free();
+
+      const idRes = activeDb.exec('SELECT last_insert_rowid();');
+      if (idRes && idRes.length > 0 && idRes[0].values.length > 0) {
+        bomId = idRes[0].values[0][0];
+      }
+    }
+
+    if (!bomId) {
+      throw new Error('Failed to obtain BOM project ID.');
+    }
+
+    if (validItems.length > 0) {
+      const itemStmt = activeDb.prepare(`
+        INSERT INTO saved_bom_items (bom_id, mpn, quantity, component_type, value, footprint, customer_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
+      `);
+      for (const it of validItems) {
+        itemStmt.run([
+          bomId,
+          String(it.mpn || '').trim(),
+          Math.max(1, Number(it.quantity) || 1),
+          it.componentType || it.type || '',
+          it.value || '',
+          it.footprint || '',
+          it.customerCode || it.designator || ''
+        ]);
+      }
+      itemStmt.free();
+    }
+
+    activeDb.run('COMMIT;');
+    flushToDisk(activeDb);
+
+    return {
+      ok: true,
+      bomId,
+      name: cleanName,
+      boardsCount: count,
+      itemsCount: validItems.length,
+      author
+    };
+  } catch (err) {
+    try { activeDb.run('ROLLBACK;'); } catch {}
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Retrieves the summary list of all saved BOM projects in SQLite.
+ *
+ * @returns {Promise<{ ok: boolean, list: Array, error?: string }>}
+ */
+async function getSavedBomsList() {
+  if (!activeDb) await initSQLiteDatabase();
+  try {
+    const res = activeDb.exec(`
+      SELECT id, name, boards_count, items_count, created_by, created_at, updated_at
+      FROM saved_boms
+      ORDER BY updated_at DESC;
+    `);
+    if (!res || res.length === 0) {
+      return { ok: true, list: [] };
+    }
+    const list = res[0].values.map(r => ({
+      id: r[0],
+      name: r[1],
+      boardsCount: r[2],
+      boards_count: r[2],
+      itemsCount: r[3],
+      items_count: r[3],
+      createdBy: r[4] || 'Admin',
+      created_by: r[4] || 'Admin',
+      createdAt: r[5],
+      created_at: r[5],
+      updatedAt: r[6],
+      updated_at: r[6]
+    }));
+    return { ok: true, list };
+  } catch (err) {
+    return { ok: false, list: [], error: err.message };
+  }
+}
+
+/**
+ * Retrieves a single saved BOM project with its component items.
+ *
+ * @param {string|number} nameOrId
+ * @returns {Promise<{ ok: boolean, bom?: Object, items?: Array, error?: string }>}
+ */
+async function getSavedBom(nameOrId) {
+  if (!activeDb) await initSQLiteDatabase();
+  try {
+    let bom = null;
+    let bomId = null;
+
+    if (typeof nameOrId === 'number' || /^\d+$/.test(String(nameOrId).trim())) {
+      const stmt = activeDb.prepare('SELECT id, name, boards_count, items_count, created_by, created_at, updated_at FROM saved_boms WHERE id = ? LIMIT 1;');
+      stmt.bind([Number(nameOrId)]);
+      if (stmt.step()) {
+        const r = stmt.get();
+        bomId = r[0];
+        bom = { id: r[0], name: r[1], boardsCount: r[2], itemsCount: r[3], createdBy: r[4], createdAt: r[5], updatedAt: r[6] };
+      }
+      stmt.free();
+    } else {
+      const stmt = activeDb.prepare('SELECT id, name, boards_count, items_count, created_by, created_at, updated_at FROM saved_boms WHERE name = ? COLLATE NOCASE LIMIT 1;');
+      stmt.bind([String(nameOrId).trim()]);
+      if (stmt.step()) {
+        const r = stmt.get();
+        bomId = r[0];
+        bom = { id: r[0], name: r[1], boardsCount: r[2], itemsCount: r[3], createdBy: r[4], createdAt: r[5], updatedAt: r[6] };
+      }
+      stmt.free();
+    }
+
+    if (!bom || !bomId) {
+      return { ok: false, error: `Saved BOM '${nameOrId}' not found.` };
+    }
+
+    const items = [];
+    const itemStmt = activeDb.prepare(`
+      SELECT id, mpn, quantity, component_type, value, footprint, customer_code
+      FROM saved_bom_items
+      WHERE bom_id = ?
+      ORDER BY id ASC;
+    `);
+    itemStmt.bind([bomId]);
+    while (itemStmt.step()) {
+      const r = itemStmt.get();
+      items.push({
+        id: r[0],
+        mpn: r[1] || '',
+        quantity: Math.max(1, Number(r[2]) || 1),
+        componentType: r[3] || '',
+        type: r[3] || '',
+        value: r[4] || '',
+        footprint: r[5] || '',
+        customerCode: r[6] || ''
+      });
+    }
+    itemStmt.free();
+
+    return { ok: true, bom, items };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Deletes a saved BOM and all associated items from SQLite.
+ *
+ * @param {string|number} nameOrId
+ * @returns {Promise<{ ok: boolean, bomName?: string, error?: string }>}
+ */
+async function deleteSavedBom(nameOrId) {
+  if (!activeDb) await initSQLiteDatabase();
+  try {
+    let bomId = null;
+    let bomName = '';
+
+    if (typeof nameOrId === 'number' || /^\d+$/.test(String(nameOrId).trim())) {
+      const stmt = activeDb.prepare('SELECT id, name FROM saved_boms WHERE id = ? LIMIT 1;');
+      stmt.bind([Number(nameOrId)]);
+      if (stmt.step()) {
+        const r = stmt.get();
+        bomId = r[0];
+        bomName = r[1];
+      }
+      stmt.free();
+    } else {
+      const stmt = activeDb.prepare('SELECT id, name FROM saved_boms WHERE name = ? COLLATE NOCASE LIMIT 1;');
+      stmt.bind([String(nameOrId).trim()]);
+      if (stmt.step()) {
+        const r = stmt.get();
+        bomId = r[0];
+        bomName = r[1];
+      }
+      stmt.free();
+    }
+
+    if (!bomId) {
+      return { ok: false, error: `Saved BOM '${nameOrId}' not found.` };
+    }
+
+    activeDb.run('BEGIN TRANSACTION;');
+    const delItems = activeDb.prepare('DELETE FROM saved_bom_items WHERE bom_id = ?;');
+    delItems.run([bomId]);
+    delItems.free();
+
+    const delBom = activeDb.prepare('DELETE FROM saved_boms WHERE id = ?;');
+    delBom.run([bomId]);
+    delBom.free();
+
+    activeDb.run('COMMIT;');
+    flushToDisk(activeDb);
+
+    return { ok: true, bomName };
+  } catch (err) {
+    try { activeDb.run('ROLLBACK;'); } catch {}
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Returns all saved BOMs with items (for sync).
+ */
+async function getAllSavedBomsWithItems() {
+  if (!activeDb) await initSQLiteDatabase();
+  const listRes = await getSavedBomsList();
+  if (!listRes.ok) return [];
+  const fullList = [];
+  for (const b of listRes.list) {
+    const detail = await getSavedBom(b.id);
+    if (detail.ok) {
+      fullList.push({
+        ...b,
+        items: detail.items || []
+      });
+    }
+  }
+  return fullList;
+}
+
+/**
+ * Bulk writes/merges an array of BOM projects with items (for sync).
+ */
+async function saveAllBomsWithItems(bomsWithItems = []) {
+  if (!activeDb) await initSQLiteDatabase();
+  for (const b of bomsWithItems) {
+    await saveBomProject({
+      name: b.name,
+      boardsCount: b.boardsCount || b.boards_count || 1,
+      items: b.items || [],
+      username: b.createdBy || b.created_by || ''
+    });
+  }
+  return { ok: true };
+}
+
+/**
+ * Upserts a user from remote MySQL into local SQLite.
+ */
+async function saveUserFromRemote({ username, email, passwordHash, role = 'user', canDeleteAll = 0, canModifyInventory = 1, canManageDatabase = 0 }) {
+  if (!activeDb) await initSQLiteDatabase();
+  const cleanUser = String(username || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanUser) return { ok: false };
+
+  const isRootAdmin = cleanUser.toLowerCase() === 'admin';
+  const cleanRole = isRootAdmin ? 'admin' : String(role || 'user').trim().toLowerCase();
+  const cleanDeleteAll = isRootAdmin ? 1 : (canDeleteAll ? 1 : 0);
+  const cleanModify = isRootAdmin ? 1 : (canModifyInventory ? 1 : 0);
+  const cleanManageDb = isRootAdmin ? 1 : (canManageDatabase ? 1 : 0);
+
+  try {
+    const existing = await getUserByUsername(cleanUser);
+    if (existing) {
+      const updateStmt = activeDb.prepare(`
+        UPDATE lab_users
+        SET email = ?, password_hash = ?, role = ?, can_delete_all = ?, can_modify_inventory = ?, can_manage_database = ?
+        WHERE username = ? COLLATE NOCASE;
+      `);
+      updateStmt.run([cleanEmail, passwordHash || existing.passwordHash, cleanRole, cleanDeleteAll, cleanModify, cleanManageDb, cleanUser]);
+      updateStmt.free();
+    } else {
+      const insertStmt = activeDb.prepare(`
+        INSERT INTO lab_users (username, email, password_hash, role, can_delete_all, can_modify_inventory, can_manage_database, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'));
+      `);
+      insertStmt.run([cleanUser, cleanEmail, passwordHash || '', cleanRole, cleanDeleteAll, cleanModify, cleanManageDb]);
+      insertStmt.free();
+    }
+    flushToDisk(activeDb);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Inserts an audit log entry from remote MySQL if not already present.
+ */
+async function saveAuditLogFromRemote({ username, actionType, mpn = '', changeDetails, changedAt }) {
+  if (!activeDb) await initSQLiteDatabase();
+  try {
+    const findStmt = activeDb.prepare(`
+      SELECT id FROM inventory_audit_log
+      WHERE username = ? AND action_type = ? AND mpn = ? AND change_details = ?
+      LIMIT 1;
+    `);
+    findStmt.bind([String(username), String(actionType), String(mpn), String(changeDetails)]);
+    let exists = false;
+    if (findStmt.step()) {
+      exists = true;
+    }
+    findStmt.free();
+
+    if (!exists) {
+      const insStmt = activeDb.prepare(`
+        INSERT INTO inventory_audit_log (username, action_type, mpn, change_details, changed_at)
+        VALUES (?, ?, ?, ?, ?);
+      `);
+      insStmt.run([
+        String(username || 'Admin'),
+        String(actionType || 'UNKNOWN').toUpperCase(),
+        String(mpn || ''),
+        String(changeDetails || ''),
+        changedAt || new Date().toISOString().replace('T', ' ').slice(0, 19)
+      ]);
+      insStmt.free();
+      flushToDisk(activeDb);
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Inserts a batch of audit log entries from remote MySQL in a single transaction.
+ */
+async function saveAuditLogsBatchFromRemote(records = []) {
+  if (!activeDb) await initSQLiteDatabase();
+  if (!Array.isArray(records) || records.length === 0) return { ok: true, count: 0 };
+
+  try {
+    activeDb.run('BEGIN TRANSACTION;');
+
+    const findStmt = activeDb.prepare(`
+      SELECT id FROM inventory_audit_log
+      WHERE username = ? AND action_type = ? AND mpn = ? AND change_details = ?
+      LIMIT 1;
+    `);
+
+    const insStmt = activeDb.prepare(`
+      INSERT INTO inventory_audit_log (username, action_type, mpn, change_details, changed_at)
+      VALUES (?, ?, ?, ?, ?);
+    `);
+
+    let insertedCount = 0;
+    for (const r of records) {
+      if (!r) continue;
+      const u = String(r.username || 'Admin');
+      const a = String(r.actionType || r.action_type || 'UNKNOWN').toUpperCase();
+      const m = String(r.mpn || '');
+      const d = String(r.changeDetails || r.change_details || '');
+      const at = r.changedAt || r.changed_at || new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+      findStmt.bind([u, a, m, d]);
+      const exists = findStmt.step();
+      findStmt.reset();
+
+      if (!exists) {
+        insStmt.run([u, a, m, d, at]);
+        insertedCount++;
+      }
+    }
+
+    findStmt.free();
+    insStmt.free();
+
+    activeDb.run('COMMIT;');
+    if (insertedCount > 0) {
+      flushToDisk(activeDb);
+    }
+    return { ok: true, count: insertedCount };
+  } catch (err) {
+    try { activeDb.run('ROLLBACK;'); } catch {}
+    return { ok: false, error: err.message };
+  }
+}
+
 module.exports = {
   getDatabasePaths,
   initSQLiteDatabase,
@@ -869,6 +1368,15 @@ module.exports = {
   insertAuditLog,
   getAuditLogs,
   getAllUsers,
-  updateUserPermissions
+  updateUserPermissions,
+  saveBomProject,
+  getSavedBomsList,
+  getSavedBom,
+  deleteSavedBom,
+  getAllSavedBomsWithItems,
+  saveAllBomsWithItems,
+  saveUserFromRemote,
+  saveAuditLogFromRemote,
+  saveAuditLogsBatchFromRemote
 };
 

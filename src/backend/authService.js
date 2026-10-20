@@ -109,6 +109,28 @@ async function registerUser({ username, email, password }) {
     return { ok: false, error: result.error || 'Failed to create user account.' };
   }
 
+  // Push new user to MySQL online if configured and online
+  try {
+    const mysqlClient = require('./mysqlClient');
+    const cfg = mysqlClient.loadConfig();
+    if (cfg && cfg.enabled) {
+      const check = await mysqlClient.testConnection();
+      if (check.online) {
+        await mysqlClient.pushUserToRemote({
+          username: cleanUser,
+          email: cleanEmail,
+          passwordHash,
+          role,
+          canDeleteAll,
+          canModifyInventory,
+          canManageDatabase: isRootAdmin ? 1 : 0
+        });
+      }
+    }
+  } catch (mysqlErr) {
+    console.warn('MySQL user registration push notice:', mysqlErr.message);
+  }
+
   currentSessionUser = {
     username: cleanUser,
     email: cleanEmail,
@@ -147,6 +169,26 @@ async function loginUser({ username, password }) {
     user = await sqliteDb.getUserByEmail(cleanUser);
   }
 
+  // If account not found in local SQLite, check if it exists in remote MySQL (e.g. after rebuild / fresh database)
+  if (!user) {
+    try {
+      const mysqlClient = require('./mysqlClient');
+      const cfg = mysqlClient.loadConfig();
+      if (cfg && cfg.enabled) {
+        const check = await mysqlClient.testConnection();
+        if (check.online) {
+          const remUser = await mysqlClient.fetchRemoteUser(cleanUser);
+          if (remUser) {
+            await sqliteDb.saveUserFromRemote(remUser);
+            user = await sqliteDb.getUserByUsername(remUser.username);
+          }
+        }
+      }
+    } catch (remErr) {
+      console.warn('Remote MySQL user fetch notice:', remErr.message);
+    }
+  }
+
   if (!user) {
     return { ok: false, error: 'Account not found. Please check your username or register.' };
   }
@@ -169,6 +211,7 @@ async function loginUser({ username, password }) {
   const userRole = isRootAdmin ? 'admin' : (user.role || 'user');
   const canDeleteAll = isRootAdmin ? true : Boolean(user.canDeleteAll);
   const canModifyInventory = isRootAdmin ? true : Boolean(user.canModifyInventory ?? 1);
+  const canManageDatabase = isRootAdmin ? true : Boolean(user.canManageDatabase);
 
   currentSessionUser = {
     id: user.id,
@@ -177,6 +220,7 @@ async function loginUser({ username, password }) {
     role: userRole,
     canDeleteAll,
     canModifyInventory,
+    canManageDatabase,
     lastLogin: previousLastLogin,
     lastFailedLogin: previousLastFailed
   };
@@ -204,6 +248,7 @@ async function getCurrentUser() {
       const userRole = isRootAdmin ? 'admin' : (user.role || 'user');
       const canDeleteAll = isRootAdmin ? true : Boolean(user.canDeleteAll);
       const canModifyInventory = isRootAdmin ? true : Boolean(user.canModifyInventory ?? 1);
+      const canManageDatabase = isRootAdmin ? true : Boolean(user.canManageDatabase);
 
       currentSessionUser = {
         id: user.id,
@@ -212,6 +257,7 @@ async function getCurrentUser() {
         role: userRole,
         canDeleteAll,
         canModifyInventory,
+        canManageDatabase,
         lastLogin: user.lastLogin,
         lastFailedLogin: user.lastFailedLogin
       };
@@ -252,7 +298,8 @@ async function ensureAdminUser() {
         passwordHash,
         role: 'admin',
         canDeleteAll: 1,
-        canModifyInventory: 1
+        canModifyInventory: 1,
+        canManageDatabase: 1
       });
       console.log('Seeded default administrator account (admin / 1234).');
     } else {
@@ -264,7 +311,8 @@ async function ensureAdminUser() {
       await sqliteDb.updateUserPermissions('admin', {
         role: 'admin',
         canDeleteAll: 1,
-        canModifyInventory: 1
+        canModifyInventory: 1,
+        canManageDatabase: 1
       });
     }
   } catch (err) {
@@ -303,7 +351,24 @@ async function updateUserPermissions({ targetUsername, permissions } = {}) {
     currentSessionUser.role = res.user.role;
     currentSessionUser.canDeleteAll = Boolean(res.user.canDeleteAll);
     currentSessionUser.canModifyInventory = Boolean(res.user.canModifyInventory);
+    currentSessionUser.canManageDatabase = Boolean(res.user.canManageDatabase);
   }
+
+  if (res.ok) {
+    try {
+      const mysqlClient = require('./mysqlClient');
+      const cfg = mysqlClient.loadConfig();
+      if (cfg && cfg.enabled) {
+        const fullUser = await sqliteDb.getUserByUsername(targetUsername);
+        if (fullUser) {
+          await mysqlClient.pushUserToRemote(fullUser);
+        }
+      }
+    } catch (pushErr) {
+      console.warn('MySQL permission push notice:', pushErr.message);
+    }
+  }
+
   return res;
 }
 
@@ -367,6 +432,19 @@ async function changeUserEmail({ username, newEmail, currentPassword }) {
     currentSessionUser.email = cleanEmail;
   }
 
+  try {
+    const mysqlClient = require('./mysqlClient');
+    const cfg = mysqlClient.loadConfig();
+    if (cfg && cfg.enabled) {
+      const fullUser = await sqliteDb.getUserByUsername(cleanUser);
+      if (fullUser) {
+        await mysqlClient.pushUserToRemote(fullUser);
+      }
+    }
+  } catch (pushErr) {
+    console.warn('MySQL email push notice:', pushErr.message);
+  }
+
   return { ok: true, email: cleanEmail, message: 'Email address successfully updated in database.' };
 }
 
@@ -418,6 +496,19 @@ async function changeUserPassword({ username, currentPassword, newPassword }) {
   const updateRes = await sqliteDb.updateUserPassword(cleanUser, newHash);
   if (!updateRes.ok) {
     return { ok: false, error: updateRes.error || 'Failed to update password in database.' };
+  }
+
+  try {
+    const mysqlClient = require('./mysqlClient');
+    const cfg = mysqlClient.loadConfig();
+    if (cfg && cfg.enabled) {
+      const fullUser = await sqliteDb.getUserByUsername(cleanUser);
+      if (fullUser) {
+        await mysqlClient.pushUserToRemote(fullUser);
+      }
+    }
+  } catch (pushErr) {
+    console.warn('MySQL password push notice:', pushErr.message);
   }
 
   return { ok: true, message: 'Password has been updated in database.' };

@@ -222,6 +222,188 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
     }
   });
 
+  /**
+   * Opens a native dialog to export an Assembly Component Pick / Kitting List as Excel (.xlsx) or CSV.
+   */
+  ipcMain.handle('db:export-assembly-list', async (_event, { defaultPath, boardName, boardsCount, analysisItems }) => {
+    const win = getMainWindow();
+    const safeBoard = (boardName || 'Board').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const safeCount = Math.max(1, Number(boardsCount) || 1);
+
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Export Assembly Pick List',
+      defaultPath: defaultPath || `${safeBoard}_Assembly_List_${safeCount}boards.xlsx`,
+      filters: [
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+        { name: 'CSV (Comma delimited) (*.csv)', extensions: ['csv'] },
+        { name: 'All Files (*.*)', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    return spreadsheetHelper.writeAssemblyPickListSpreadsheet(filePath, boardName, boardsCount, analysisItems);
+  });
+
+  // --------------------------------------------------------------------------
+  // BOM Project Saving & Management (Local SQLite & Online MySQL)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Saves or updates a complete BOM project in SQLite and pushes to remote MySQL if online.
+   */
+  ipcMain.handle('bom:save-project', async (_event, { name, boardsCount, items }) => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        const isAdmin = currentUser.role === 'admin' || String(currentUser.username).toLowerCase() === 'admin';
+        if (!isAdmin && !currentUser.canModifyInventory) {
+          return { ok: false, error: 'Permission denied: Your account cannot modify database projects.' };
+        }
+      }
+
+      const author = currentUser ? currentUser.username : 'Admin';
+      const localRes = await sqliteDb.saveBomProject({
+        name,
+        boardsCount,
+        items,
+        username: author
+      });
+
+      if (!localRes.ok) {
+        return localRes;
+      }
+
+      // Check if remote MySQL is enabled and attempt push
+      let syncedOnline = false;
+      let onlineError = null;
+      const cfg = mysqlClient.loadConfig();
+      if (cfg && cfg.enabled) {
+        try {
+          const test = await mysqlClient.testConnection();
+          if (test.online) {
+            const pushRes = await mysqlClient.pushBomToRemote({
+              name,
+              boardsCount,
+              items,
+              username: author
+            });
+            if (pushRes && pushRes.ok) {
+              syncedOnline = true;
+            } else {
+              onlineError = pushRes.error || 'Failed to sync to online database.';
+            }
+          } else {
+            onlineError = test.message;
+          }
+        } catch (err) {
+          onlineError = err.message;
+        }
+      }
+
+      // Audit log (non-fatal)
+      try {
+        const syncTag = syncedOnline ? ' [Local & Online MySQL]' : ' [Local SQLite]';
+        await auditLogger.logChange({
+          username: author,
+          actionType: 'BOM_SAVE',
+          mpn: name,
+          changeDetails: `Saved BOM project '${name}' (${(items || []).length} parts, ${boardsCount || 1} boards)${syncTag}`
+        });
+      } catch (auditErr) {
+        console.warn('Audit log notice on BOM_SAVE:', auditErr.message);
+      }
+
+      return {
+        ok: true,
+        name: localRes.name,
+        bomId: localRes.bomId,
+        boardsCount: localRes.boardsCount,
+        itemsCount: localRes.itemsCount,
+        syncedOnline,
+        onlineError
+      };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  /**
+   * Retrieves the list of all saved BOM projects from SQLite.
+   */
+  ipcMain.handle('bom:list-saved', async () => {
+    try {
+      return await sqliteDb.getSavedBomsList();
+    } catch (err) {
+      return { ok: false, list: [], error: err.message };
+    }
+  });
+
+  /**
+   * Loads a saved BOM project with its component items.
+   */
+  ipcMain.handle('bom:load-project', async (_event, name) => {
+    try {
+      return await sqliteDb.getSavedBom(name);
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  /**
+   * Deletes a saved BOM project from local SQLite and remote MySQL.
+   */
+  ipcMain.handle('bom:delete-project', async (_event, name) => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        const isAdmin = currentUser.role === 'admin' || String(currentUser.username).toLowerCase() === 'admin';
+        if (!isAdmin && !currentUser.canModifyInventory) {
+          return { ok: false, error: 'Permission denied: Your account cannot delete BOM projects.' };
+        }
+      }
+
+      const res = await sqliteDb.deleteSavedBom(name);
+      if (res.ok) {
+        const cfg = mysqlClient.loadConfig();
+        if (cfg && cfg.enabled) {
+          try {
+            await mysqlClient.deleteBomFromRemote(name);
+          } catch {}
+        }
+
+        const author = currentUser ? currentUser.username : 'Admin';
+        try {
+          await auditLogger.logChange({
+            username: author,
+            actionType: 'BOM_DELETE',
+            mpn: name,
+            changeDetails: `Deleted BOM project '${name}' from database`
+          });
+        } catch (auditErr) {
+          console.warn('Audit log notice on BOM_DELETE:', auditErr.message);
+        }
+      }
+      return res;
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  /**
+   * Performs an immediate sync of BOM projects between local SQLite and remote MySQL.
+   */
+  ipcMain.handle('bom:sync-remote', async () => {
+    try {
+      const componentsRes = await sqliteDb.getAllComponents();
+      return await mysqlClient.sync(componentsRes.list || [], 'merge');
+    } catch (err) {
+      return { ok: false, message: err.message };
+    }
+  });
+
   // --------------------------------------------------------------------------
   // 2. Application & Dirty State
   // --------------------------------------------------------------------------
@@ -277,14 +459,24 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
   /**
    * Returns current stored MySQL configuration.
    */
-  ipcMain.handle('mysql:get-config', () => {
+  ipcMain.handle('mysql:get-config', async () => {
+    const user = await authService.getCurrentUser();
+    const isAllowed = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin' || user.canManageDatabase);
+    if (!isAllowed) {
+      return { ok: false, error: 'Unauthorized: Permission to view database configuration is required.' };
+    }
     return mysqlClient.loadConfig();
   });
 
   /**
    * Saves new MySQL connection configuration.
    */
-  ipcMain.handle('mysql:save-config', (_event, newConfig) => {
+  ipcMain.handle('mysql:save-config', async (_event, newConfig) => {
+    const user = await authService.getCurrentUser();
+    const isAllowed = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin' || user.canManageDatabase);
+    if (!isAllowed) {
+      return { ok: false, error: 'Unauthorized: Permission to manage database is required.' };
+    }
     const updated = mysqlClient.saveConfig(newConfig);
     return { ok: true, config: updated };
   });
@@ -293,14 +485,19 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
    * Tests connection with provided credentials without saving.
    */
   ipcMain.handle('mysql:test-connection', async (_event, customConfig) => {
+    const user = await authService.getCurrentUser();
+    const isAllowed = user && (user.role === 'admin' || String(user.username).toLowerCase() === 'admin' || user.canManageDatabase);
+    if (!isAllowed) {
+      return { online: false, message: 'Unauthorized: Permission to manage database is required.' };
+    }
     return mysqlClient.testConnection(customConfig);
   });
 
   /**
    * Triggers bidirectional sync between local SQLite and remote MySQL.
    */
-  ipcMain.handle('mysql:sync-now', async (_event, localComponents) => {
-    const result = await mysqlClient.sync(localComponents);
+  ipcMain.handle('mysql:sync-now', async (_event, localComponents, mode = 'merge') => {
+    const result = await mysqlClient.sync(localComponents, mode);
     return result;
   });
 
