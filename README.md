@@ -1,6 +1,6 @@
-# Lab Inventory v2.0 (Electron Edition)
+# Lab Inventory v2.0
 
-A modern desktop application for managing electronics lab component inventory and analyzing Bill of Materials (BOM) stock readiness — converted from Qt/C++ to Electron.
+A modern desktop application for managing electronics lab component inventory and analyzing Bill of Materials (BOM) stock readiness 
 
 ## Features
 - **Modern KPI Dashboard**: Live counters for Unique Parts, Total Stock Units, Low/Out-of-Stock alerts (`<= 10`), and Database Sync Status (`Saved` / `Unsaved Changes *`).
