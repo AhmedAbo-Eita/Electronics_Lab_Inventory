@@ -91,7 +91,7 @@ function compareSemver(a, b) {
  * @returns {Promise<Object>}
  */
 async function checkForUpdates(options = {}) {
-  const currentVersion = app ? app.getVersion() : '2.0.0';
+  const currentVersion = app ? app.getVersion() : '2.1.2';
   const nowIso = new Date().toISOString();
   appSettings.saveSettings({ lastUpdateCheck: nowIso });
 
@@ -100,14 +100,14 @@ async function checkForUpdates(options = {}) {
       ok: true,
       hasUpdate: true,
       currentVersion,
-      latestVersion: '2.1.2',
-      releaseName: 'Lab Inventory v2.1.2 (Demo Release)',
-      releaseNotes: '### What\'s New in v2.1.2\n- Simple, clean settings interface without decorative icon clutter\n- Strict database password verification on credential updates\n- Secure session logout with automatic sign-in reset\n- Built-in GitHub release auto-updater and background sync',
+      latestVersion: '2.1.3',
+      releaseName: 'Lab Inventory v2.1.3 (Demo Release)',
+      releaseNotes: '### What\'s New in v2.1.3\n- Performance enhancements and automated database sync updates\n- Interactive duplicate MPN resolution with multi-location storage\n- Windows Setup installer prioritization in auto-updater',
       publishedAt: nowIso,
       htmlUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`,
-      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.2/Lab_Inventory_Setup_2.1.2.exe`,
-      assetName: 'Lab_Inventory_Setup_2.1.2.exe',
-      assetSize: '65.4 MB',
+      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.3/Lab_Inventory_Setup_2.1.3.exe`,
+      assetName: 'Lab_Inventory_Setup_2.1.3.exe',
+      assetSize: '78.2 MB',
       isSimulated: true
     };
   }
@@ -161,23 +161,48 @@ async function checkForUpdates(options = {}) {
     const latest = validReleases[0];
     const latestTag = latest.tag_name || latest.name || '';
     const cleanLatest = latestTag.replace(/^[vV]/, '');
-    const cleanCurrent = String(currentVersion || '2.1.1').replace(/^[vV]/, '');
+    const cleanCurrent = String(currentVersion || '2.1.2').replace(/^[vV]/, '');
     const cmp = compareSemver(cleanLatest, cleanCurrent);
     const hasUpdate = cmp > 0;
     const isAhead = cmp < 0;
     const isMatching = cmp === 0;
 
-    // Look for Windows executable installer in assets
+    // Look for Windows executable installer in assets (prioritize Setup / Installer over Portable)
     let assetName = '';
     let downloadUrl = '';
     let assetSize = '';
+    let installerAsset = null;
+    let portableAsset = null;
 
     if (Array.isArray(latest.assets) && latest.assets.length > 0) {
-      const exeAsset = latest.assets.find((a) => a.name && a.name.endsWith('.exe')) || latest.assets[0];
-      if (exeAsset) {
-        assetName = exeAsset.name;
-        downloadUrl = exeAsset.browser_download_url;
-        assetSize = (exeAsset.size / (1024 * 1024)).toFixed(1) + ' MB';
+      // 1. Explicit Installer executable (.exe with 'setup', 'installer', or 'install', and NOT 'portable')
+      installerAsset = latest.assets.find((a) => {
+        if (!a.name || !a.name.toLowerCase().endsWith('.exe')) return false;
+        const lower = a.name.toLowerCase();
+        return (lower.includes('setup') || lower.includes('installer') || lower.includes('install')) && !lower.includes('portable');
+      });
+
+      // 2. Identify portable executable if published alongside installer
+      portableAsset = latest.assets.find((a) => {
+        if (!a.name || !a.name.toLowerCase().endsWith('.exe')) return false;
+        return a.name.toLowerCase().includes('portable');
+      });
+
+      // 3. Fallback: Any .exe that is NOT portable
+      if (!installerAsset) {
+        installerAsset = latest.assets.find((a) => {
+          if (!a.name || !a.name.toLowerCase().endsWith('.exe')) return false;
+          return !a.name.toLowerCase().includes('portable');
+        });
+      }
+
+      // 4. Fallback: Any .exe asset
+      const targetAsset = installerAsset || latest.assets.find((a) => a.name && a.name.toLowerCase().endsWith('.exe')) || latest.assets[0];
+
+      if (targetAsset) {
+        assetName = targetAsset.name;
+        downloadUrl = targetAsset.browser_download_url;
+        assetSize = (targetAsset.size / (1024 * 1024)).toFixed(1) + ' MB';
       }
     }
 
@@ -193,8 +218,18 @@ async function checkForUpdates(options = {}) {
       publishedAt: latest.published_at,
       htmlUrl: latest.html_url || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`,
       downloadUrl: downloadUrl || latest.html_url,
-      assetName: assetName || `Lab_Inventory_${latestTag}.exe`,
-      assetSize
+      assetName: assetName || `Lab_Inventory_Setup_${cleanLatest}.exe`,
+      assetSize,
+      installerAsset: installerAsset ? {
+        name: installerAsset.name,
+        downloadUrl: installerAsset.browser_download_url,
+        size: (installerAsset.size / (1024 * 1024)).toFixed(1) + ' MB'
+      } : null,
+      portableAsset: portableAsset ? {
+        name: portableAsset.name,
+        downloadUrl: portableAsset.browser_download_url,
+        size: (portableAsset.size / (1024 * 1024)).toFixed(1) + ' MB'
+      } : null
     };
   } catch (err) {
     return {
@@ -297,8 +332,29 @@ function openDownloadedFile(filePath) {
   }
 }
 
+/**
+ * Executes a downloaded installer to start the Windows Setup wizard.
+ * @param {string} filePath
+ * @returns {Promise<{ ok: boolean, error?: string }>}
+ */
+async function runInstaller(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { ok: false, error: 'Installer file not found on disk.' };
+  }
+  try {
+    const errorMsg = await shell.openPath(filePath);
+    if (errorMsg) {
+      return { ok: false, error: errorMsg };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 module.exports = {
   checkForUpdates,
   downloadReleaseAsset,
-  openDownloadedFile
+  openDownloadedFile,
+  runInstaller
 };

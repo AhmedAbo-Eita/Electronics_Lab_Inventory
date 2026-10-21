@@ -1,4 +1,4 @@
-# Electronics Lab Inventory v2.0
+# Electronics Lab Inventory v2.1.2
 
 A modern, high-performance desktop application for managing electronics laboratory component inventory, analyzing Bill of Materials (BOM) stock readiness, managing board build kits, and synchronizing data between local SQLite and remote MySQL databases.
 

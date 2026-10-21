@@ -1024,7 +1024,7 @@
                 </div>
                 <div class="simple-info-row">
                   <span class="simple-info-label">Version:</span>
-                  <strong id="aboutAppVersionBadge">v2.1.1</strong>
+                  <strong id="aboutAppVersionBadge">v2.1.2</strong>
                 </div>
                 <div class="simple-info-row">
                   <span class="simple-info-label">Developer:</span>
@@ -1045,7 +1045,7 @@
               <div class="simple-update-status-box">
                 <div>
                   <strong id="updateStatusHeadline">Updates are up to date</strong>
-                  <p id="updateStatusSubtext" class="simple-option-subtext">Current version: v2.1.1.</p>
+                  <p id="updateStatusSubtext" class="simple-option-subtext">Current version: v2.1.2.</p>
                   <span id="updateLastCheckedLabel" class="simple-info-muted">Last checked: Never</span>
                 </div>
                 <div class="simple-update-actions">
@@ -1060,7 +1060,7 @@
               <div id="updateFoundDetails" class="simple-update-found-box hidden">
                 <div class="simple-info-row">
                   <strong>New Release:</strong>
-                  <span id="updateFoundVersionTag" style="color: var(--primary); font-weight: bold;">v2.1.1</span>
+                  <span id="updateFoundVersionTag" style="color: var(--primary); font-weight: bold;">v2.1.2</span>
                   <span id="updateFoundDate" class="simple-info-muted"></span>
                   <span id="updateFoundSize" class="simple-info-muted"></span>
                 </div>
@@ -1078,9 +1078,11 @@
                   </div>
                 </div>
 
-                <div class="simple-form-actions" style="margin-top: 8px;">
-                  <button type="button" id="downloadUpdateBtn" class="btn-filled-primary ripple-btn">Download Update (.exe)</button>
-                  <button type="button" id="openDownloadedFileBtn" class="btn-tonal-teal ripple-btn hidden">Open Installer in Folder</button>
+                <div class="simple-form-actions" style="margin-top: 8px; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" id="downloadUpdateBtn" class="btn-filled-primary ripple-btn">Download Installer (.exe)</button>
+                  <button type="button" id="runInstallerBtn" class="btn-filled-primary ripple-btn hidden">Run Installer</button>
+                  <button type="button" id="openDownloadedFileBtn" class="btn-tonal-teal ripple-btn hidden">Open in Folder</button>
+                  <button type="button" id="downloadPortableBtn" class="btn-outlined ripple-btn hidden">Download Portable (.exe)</button>
                   <button type="button" id="viewReleaseGitHubBtn" class="btn-outlined ripple-btn">View on GitHub</button>
                 </div>
               </div>

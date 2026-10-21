@@ -247,6 +247,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDownloadedFile: (filePath) => ipcRenderer.invoke('app:open-downloaded-file', filePath),
 
   /**
+   * Runs the downloaded installer executable to begin installation.
+   */
+  runInstaller: (filePath) => ipcRenderer.invoke('app:run-installer', filePath),
+
+  /**
    * Safely opens an external URL in the user's default browser.
    */
   openExternalUrl: (url) => ipcRenderer.invoke('app:open-external', url),

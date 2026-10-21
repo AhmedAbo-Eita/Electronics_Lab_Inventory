@@ -2809,7 +2809,7 @@ async function onCheckForUpdates(simulate = false) {
       if (headline) headline.textContent = `Update Available: v${res.latestVersion}`;
       if (subtext) subtext.textContent = `A newer release (${res.releaseName || 'v' + res.latestVersion}) is published on GitHub. (Installed: v${res.currentVersion})`;
       if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-update';
-      if (dlBtn) dlBtn.textContent = 'Download Update (.exe)';
+      if (dlBtn) dlBtn.textContent = `Download Installer (${res.assetName || 'Setup.exe'})`;
       if (foundDetails) {
         foundDetails.classList.remove('hidden');
         const verTag = document.getElementById('updateFoundVersionTag');
@@ -2825,12 +2825,27 @@ async function onCheckForUpdates(simulate = false) {
         const changelog = document.getElementById('updateFoundChangelog');
         if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
       }
-      showToast(`New update available: v${res.latestVersion}`);
+
+      const portableBtn = document.getElementById('downloadPortableBtn');
+      if (portableBtn) {
+        if (res.portableAsset) {
+          portableBtn.classList.remove('hidden');
+          portableBtn.textContent = `Download Portable (${res.portableAsset.name})`;
+        } else {
+          portableBtn.classList.add('hidden');
+        }
+      }
+      const runInstallerBtn = document.getElementById('runInstallerBtn');
+      if (runInstallerBtn) runInstallerBtn.classList.add('hidden');
+      const openFileBtn = document.getElementById('openDownloadedFileBtn');
+      if (openFileBtn) openFileBtn.classList.add('hidden');
+
+      showToast(`New update available: v${res.latestVersion} (${res.assetName})`);
     } else if (res.isAhead) {
       if (headline) headline.textContent = `Up to Date (Installed: v${res.currentVersion})`;
       if (subtext) subtext.textContent = `Your installed version (v${res.currentVersion}) is ahead of the latest public GitHub release (v${res.latestVersion}).`;
       if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
-      if (dlBtn) dlBtn.textContent = `Download Release v${res.latestVersion} (.exe)`;
+      if (dlBtn) dlBtn.textContent = `Download Release v${res.latestVersion} Installer (${res.assetName || 'Setup.exe'})`;
       if (foundDetails) {
         foundDetails.classList.remove('hidden');
         const verTag = document.getElementById('updateFoundVersionTag');
@@ -2846,6 +2861,21 @@ async function onCheckForUpdates(simulate = false) {
         const changelog = document.getElementById('updateFoundChangelog');
         if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
       }
+
+      const portableBtn = document.getElementById('downloadPortableBtn');
+      if (portableBtn) {
+        if (res.portableAsset) {
+          portableBtn.classList.remove('hidden');
+          portableBtn.textContent = `Download Portable (${res.portableAsset.name})`;
+        } else {
+          portableBtn.classList.add('hidden');
+        }
+      }
+      const runInstallerBtn = document.getElementById('runInstallerBtn');
+      if (runInstallerBtn) runInstallerBtn.classList.add('hidden');
+      const openFileBtn = document.getElementById('openDownloadedFileBtn');
+      if (openFileBtn) openFileBtn.classList.add('hidden');
+
       showToast(`Installed v${res.currentVersion} is newer than GitHub release v${res.latestVersion}`);
     } else if (res.noReleases) {
       activeUpdatePayload = null;
@@ -2853,12 +2883,14 @@ async function onCheckForUpdates(simulate = false) {
       if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
       if (headline) headline.textContent = 'No Releases Published Yet';
       if (subtext) subtext.textContent = `Connected to repository AhmedAbo-Eita/Electronics_Lab_Inventory. Current build: v${res.currentVersion}.`;
+      const portableBtn = document.getElementById('downloadPortableBtn');
+      if (portableBtn) portableBtn.classList.add('hidden');
       showToast('No GitHub releases found yet');
     } else {
       if (headline) headline.textContent = 'You are up to date!';
       if (subtext) subtext.textContent = `Installed version v${res.currentVersion} matches the latest release on GitHub (v${res.latestVersion}).`;
       if (iconWrapper) iconWrapper.className = 'update-status-icon-wrapper icon-ok';
-      if (dlBtn) dlBtn.textContent = `Re-download Release v${res.latestVersion} (.exe)`;
+      if (dlBtn) dlBtn.textContent = `Re-download Installer (${res.assetName || 'Setup.exe'})`;
       if (foundDetails) {
         foundDetails.classList.remove('hidden');
         const verTag = document.getElementById('updateFoundVersionTag');
@@ -2874,6 +2906,21 @@ async function onCheckForUpdates(simulate = false) {
         const changelog = document.getElementById('updateFoundChangelog');
         if (changelog) changelog.textContent = res.releaseNotes || 'No changelog provided.';
       }
+
+      const portableBtn = document.getElementById('downloadPortableBtn');
+      if (portableBtn) {
+        if (res.portableAsset) {
+          portableBtn.classList.remove('hidden');
+          portableBtn.textContent = `Download Portable (${res.portableAsset.name})`;
+        } else {
+          portableBtn.classList.add('hidden');
+        }
+      }
+      const runInstallerBtn = document.getElementById('runInstallerBtn');
+      if (runInstallerBtn) runInstallerBtn.classList.add('hidden');
+      const openFileBtn = document.getElementById('openDownloadedFileBtn');
+      if (openFileBtn) openFileBtn.classList.add('hidden');
+
       showToast('Application is up to date');
     }
   } catch (err) {
@@ -2889,25 +2936,37 @@ async function onCheckForUpdates(simulate = false) {
 
 /**
  * Downloads the available update from GitHub releases with animated progress bar
+ * @param {Object} [targetAsset=null] Optional asset override (e.g. for portable download)
  */
-async function onDownloadUpdate() {
-  if (!activeUpdatePayload || !activeUpdatePayload.downloadUrl) {
+async function onDownloadUpdate(targetAsset = null) {
+  if (!activeUpdatePayload) {
+    showToast('No update information available');
+    return;
+  }
+
+  const downloadUrl = (targetAsset && targetAsset.downloadUrl) || activeUpdatePayload.downloadUrl;
+  const assetName = (targetAsset && targetAsset.name) || activeUpdatePayload.assetName;
+
+  if (!downloadUrl) {
     showToast('No update download URL found');
     return;
   }
 
   const dlBtn = document.getElementById('downloadUpdateBtn');
+  const portableBtn = document.getElementById('downloadPortableBtn');
   const progressWrapper = document.getElementById('updateDownloadProgressWrapper');
   const progressBar = document.getElementById('updateProgressBar');
   const progressPercent = document.getElementById('updateProgressPercent');
   const progressText = document.getElementById('updateProgressText');
   const openFileBtn = document.getElementById('openDownloadedFileBtn');
+  const runInstallerBtn = document.getElementById('runInstallerBtn');
 
   if (progressWrapper) progressWrapper.classList.remove('hidden');
   if (progressBar) progressBar.style.width = '0%';
   if (progressPercent) progressPercent.textContent = '0%';
-  if (progressText) progressText.textContent = 'Connecting to GitHub repository...';
+  if (progressText) progressText.textContent = `Connecting to GitHub repository for ${assetName}...`;
   if (dlBtn) dlBtn.disabled = true;
+  if (portableBtn) portableBtn.disabled = true;
 
   if (window.electronAPI && window.electronAPI.onUpdateDownloadProgress) {
     window.electronAPI.onUpdateDownloadProgress((p) => {
@@ -2916,24 +2975,32 @@ async function onDownloadUpdate() {
       if (progressText) {
         const mb = (p.transferred / (1024 * 1024)).toFixed(1);
         const totalMb = (p.total / (1024 * 1024)).toFixed(1);
-        progressText.textContent = `Downloading installer: ${mb} MB / ${totalMb} MB (${p.percent}%)`;
+        progressText.textContent = `Downloading ${assetName}: ${mb} MB / ${totalMb} MB (${p.percent}%)`;
       }
     });
   }
 
   try {
     const res = await window.electronAPI.downloadUpdate({
-      downloadUrl: activeUpdatePayload.downloadUrl,
-      assetName: activeUpdatePayload.assetName
+      downloadUrl,
+      assetName
     });
 
     if (res.ok) {
       latestDownloadedFilePath = res.filePath;
+      const isPortable = res.fileName && res.fileName.toLowerCase().includes('portable');
       if (progressText) progressText.textContent = `Success: Download complete. Saved to Downloads: ${res.fileName}`;
       if (progressBar) progressBar.style.width = '100%';
       if (progressPercent) progressPercent.textContent = '100%';
-      if (openFileBtn) openFileBtn.classList.remove('hidden');
-      showToast(`Installer downloaded: ${res.fileName}`);
+      if (openFileBtn) {
+        openFileBtn.classList.remove('hidden');
+        openFileBtn.textContent = 'Open in Folder';
+      }
+      if (runInstallerBtn && !isPortable) {
+        runInstallerBtn.classList.remove('hidden');
+        runInstallerBtn.textContent = 'Run Installer';
+      }
+      showToast(`Downloaded: ${res.fileName}`);
     } else {
       if (progressText) progressText.textContent = `Error: Download failed - ${res.error}`;
       showToast('Download error: ' + res.error);
@@ -2943,6 +3010,7 @@ async function onDownloadUpdate() {
     showToast('Download failed');
   } finally {
     if (dlBtn) dlBtn.disabled = false;
+    if (portableBtn) portableBtn.disabled = false;
   }
 }
 
@@ -3641,7 +3709,26 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   const downloadUpdateBtn = document.getElementById('downloadUpdateBtn');
   if (downloadUpdateBtn) {
-    downloadUpdateBtn.addEventListener('click', onDownloadUpdate);
+    downloadUpdateBtn.addEventListener('click', () => onDownloadUpdate(null));
+  }
+  const downloadPortableBtn = document.getElementById('downloadPortableBtn');
+  if (downloadPortableBtn) {
+    downloadPortableBtn.addEventListener('click', () => {
+      if (activeUpdatePayload && activeUpdatePayload.portableAsset) {
+        onDownloadUpdate(activeUpdatePayload.portableAsset);
+      }
+    });
+  }
+  const runInstallerBtn = document.getElementById('runInstallerBtn');
+  if (runInstallerBtn) {
+    runInstallerBtn.addEventListener('click', async () => {
+      if (latestDownloadedFilePath && window.electronAPI && window.electronAPI.runInstaller) {
+        const res = await window.electronAPI.runInstaller(latestDownloadedFilePath);
+        if (!res.ok) {
+          showToast(`Could not launch installer: ${res.error}`);
+        }
+      }
+    });
   }
   const openDownloadedFileBtn = document.getElementById('openDownloadedFileBtn');
   if (openDownloadedFileBtn) {
