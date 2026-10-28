@@ -4,9 +4,9 @@ A modern, high-performance desktop application for managing electronics laborato
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 1. 📦 Inventory Management & Quick Filtering
+### 1. Inventory Management & Quick Filtering
 - **Live KPI Dashboard**: Instant visual metrics for Unique MPNs, Total Stock Units, Low Stock (`<= 10`), Out of Stock (`0`), and Database Sync Status (`Saved` / `Unsaved Changes *`).
 - **Multi-Criteria Search & Filter**: Real-time filtering across MPN, Value, Footprint, Location, and Customer Code combined with Component Type and Stock Status dropdowns.
 - **Interactive Component Table**:
@@ -15,7 +15,7 @@ A modern, high-performance desktop application for managing electronics laborato
   - Single-click row inspector and double-click inline editing in the Edit Component tab.
   - Multi-location component support: multiple rows with the same MPN can exist in different cabinets or bins.
 
-### 2. 📥 Smart Additive Import & Duplicate MPN Resolution
+### 2. Smart Additive Import & Duplicate MPN Resolution
 - **Additive Import**: Importing Excel (`.xlsx`, `.xls`) or CSV files adds onto the current inventory instead of replacing it.
 - **Intelligent Duplicate MPN Handling**:
   - If imported components have MPNs that already exist in the inventory, an interactive dialog provides options:
@@ -24,7 +24,7 @@ A modern, high-performance desktop application for managing electronics laborato
     - **Cancel Import**: Aborts the operation without making changes.
 - **Export & Templates**: Export the full inventory to formatted Excel/CSV files or generate a starter spreadsheet template with one click.
 
-### 3. 🧩 BOM Analyzer, Saved BOMs & Assembly Kits
+### 3. BOM Analyzer, Saved BOMs & Assembly Kits
 - **EDA / CAD BOM Importer**: Import BOMs directly from KiCad, Altium Designer, and Eagle (Excel or CSV) with automatic duplicate component consolidation.
 - **Build Readiness & Shortage Analysis**:
   - Configure **Boards to Build** multiplier.
@@ -35,7 +35,7 @@ A modern, high-performance desktop application for managing electronics laborato
   - Search, view, reload into analyzer, export to Excel, or delete saved BOM projects.
 - **Export Assembly Kit**: Export a clean, production-ready spreadsheet listing parts, quantities, and storage locations required to build a designated batch of boards.
 
-### 4. 🔐 User Authentication & Role-Based Access Control (RBAC)
+### 4. User Authentication & Role-Based Access Control (RBAC)
 - **Local & Cloud User Accounts**:
   - Secure credential storage using `scrypt` hashing with random cryptographically secure salts.
   - Built-in `admin` account with initial seed credentials.
@@ -47,12 +47,12 @@ A modern, high-performance desktop application for managing electronics laborato
   - **Explore Mode**: Users without inventory modification rights can inspect components and analyze BOMs in a safe, read-only mode.
 - **Remote Login Fallback**: If SQLite is rebuilt or installed fresh, logging in automatically checks the remote MySQL database, caches the account locally, and authenticates seamlessly.
 
-### 5. 📜 Comprehensive Audit History & Activity Logs
+### 5. Comprehensive Audit History & Activity Logs
 - **Full Action Tracking**: Automatically logs inventory additions, edits, deletions, stock adjustments, BOM deductions, imports, and database resets with timestamps and usernames.
 - **Activity History Viewer**: Dedicated modal with search and action-type filtering (`ADD`, `EDIT`, `DELETE`, `DEDUCT`, `IMPORT`, `RESET`).
 - **High-Speed Cloud Sync**: Fast batch synchronization pushes local logs to MySQL and pulls remote logs into SQLite in a single transaction.
 
-### 6. 🔄 Dual Database Architecture: Local SQLite + Remote MySQL
+### 6. Dual Database Architecture: Local SQLite + Remote MySQL
 - **Offline-First SQLite**: Uses `sql.js` (WebAssembly SQLite) storing data in `data/lab_inventory.db`. Zero setup or external server required.
 - **Remote Cloud MySQL**:
   - Optional real-time sync with remote MySQL servers.
@@ -60,7 +60,7 @@ A modern, high-performance desktop application for managing electronics laborato
   - Bidirectional sync covers components, user accounts, saved BOM projects, and audit history.
   - Fast batch execution over WAN connections with connection pooling and schema caching.
 
-### 7. 🎨 Modern Settings & Theme Customization
+### 7. Modern Settings & Theme Customization
 - **Multi-Tab Settings Dialog**:
   - **Account**: User profile, change registered email, update password, and view permission badges.
   - **Preferences**: Select System Theme (Windows auto-detect), Dark Theme, or Light Theme; toggle Windows startup launch and auto-login.
@@ -92,7 +92,7 @@ Build outputs are saved to the `dist/` directory.
 
 ---
 
-## 📁 Project Architecture
+## Project Architecture
 
 ```
 Electronics_Lab_Inventory/
@@ -123,7 +123,7 @@ Electronics_Lab_Inventory/
 
 ---
 
-## 🗄️ Database Schemas
+## Database Schemas
 
 Both local SQLite and remote MySQL share identical schemas:
 
@@ -203,7 +203,7 @@ CREATE TABLE `saved_bom_items` (
 
 ---
 
-## 🔌 Opening the Database in DBeaver
+## Opening the Database in DBeaver
 
 ### Local SQLite Database
 1. Open **DBeaver** and click **New Database Connection** (top-left plug icon).
@@ -221,5 +221,5 @@ CREATE TABLE `saved_bom_items` (
 
 ---
 
-## 📄 License
+## License
 Internal Electronics Lab Inventory Application. All rights reserved.
