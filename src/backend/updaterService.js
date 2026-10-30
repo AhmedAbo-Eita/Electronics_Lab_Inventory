@@ -91,7 +91,7 @@ function compareSemver(a, b) {
  * @returns {Promise<Object>}
  */
 async function checkForUpdates(options = {}) {
-  const currentVersion = app ? app.getVersion() : '2.1.2';
+  const currentVersion = app ? app.getVersion() : '2.1.3';
   const nowIso = new Date().toISOString();
   appSettings.saveSettings({ lastUpdateCheck: nowIso });
 
@@ -100,14 +100,14 @@ async function checkForUpdates(options = {}) {
       ok: true,
       hasUpdate: true,
       currentVersion,
-      latestVersion: '2.1.3',
-      releaseName: 'Lab Inventory v2.1.3 (Demo Release)',
-      releaseNotes: '### What\'s New in v2.1.3\n- Performance enhancements and automated database sync updates\n- Interactive duplicate MPN resolution with multi-location storage\n- Windows Setup installer prioritization in auto-updater',
+      latestVersion: '2.1.4',
+      releaseName: 'Lab Inventory v2.1.4 (Demo Release)',
+      releaseNotes: '### What\'s New in v2.1.4\n- Performance enhancements and automated database sync updates\n- Interactive duplicate MPN resolution with multi-location storage\n- Windows Setup installer prioritization in auto-updater',
       publishedAt: nowIso,
       htmlUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`,
-      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.3/Lab_Inventory_Setup_2.1.3.exe`,
-      assetName: 'Lab_Inventory_Setup_2.1.3.exe',
-      assetSize: '78.2 MB',
+      downloadUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/v2.1.4/Lab_Inventory_Setup_2.1.4.exe`,
+      assetName: 'Lab_Inventory_Setup_2.1.4.exe',
+      assetSize: '82.5 MB',
       isSimulated: true
     };
   }
@@ -161,7 +161,7 @@ async function checkForUpdates(options = {}) {
     const latest = validReleases[0];
     const latestTag = latest.tag_name || latest.name || '';
     const cleanLatest = latestTag.replace(/^[vV]/, '');
-    const cleanCurrent = String(currentVersion || '2.1.2').replace(/^[vV]/, '');
+    const cleanCurrent = String(currentVersion || '2.1.3').replace(/^[vV]/, '');
     const cmp = compareSemver(cleanLatest, cleanCurrent);
     const hasUpdate = cmp > 0;
     const isAhead = cmp < 0;

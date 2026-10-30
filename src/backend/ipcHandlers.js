@@ -621,7 +621,7 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
   ipcMain.handle('app:get-system-info', () => {
     return {
       appName: 'Lab Inventory',
-      appVersion: app ? app.getVersion() : '2.1.2',
+      appVersion: app ? app.getVersion() : '2.1.3',
       electronVersion: process.versions.electron || '33.2.0',
       chromeVersion: process.versions.chrome || '130.0',
       nodeVersion: process.versions.node || '20.18',
