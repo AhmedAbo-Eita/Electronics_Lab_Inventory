@@ -20,13 +20,13 @@ const XLSX = require('xlsx');
  * Standard starter inventory examples for the Excel/CSV template.
  */
 const TEMPLATE_SAMPLE_ROWS = [
-  { mpn: 'STM32F103C8T6', quantity: 24, componentType: 'IC', value: '32-bit ARM Cortex-M3 MCU', footprint: 'LQFP-48', location: 'Cabinet A - Bin 01', customerCode: 'MCU-001' },
-  { mpn: 'ESP32-WROOM-32E', quantity: 15, componentType: 'IC', value: 'Wi-Fi + BT SoC Module', footprint: 'SMD-38', location: 'Cabinet A - Bin 02', customerCode: 'MOD-002' },
-  { mpn: 'AMS1117-3.3', quantity: 45, componentType: 'IC', value: '3.3V 1A LDO Regulator', footprint: 'SOT-223', location: 'Cabinet A - Bin 04', customerCode: 'REG-003' },
-  { mpn: 'RC0603FR-0710KL', quantity: 250, componentType: 'Resistor', value: '10k 1% 100mW', footprint: '0603', location: 'Rack R - Drawer 01', customerCode: 'RES-10K' },
-  { mpn: 'CL10B104KB8NNNC', quantity: 320, componentType: 'Capacitor', value: '100nF 50V X7R', footprint: '0603', location: 'Rack C - Drawer 01', customerCode: 'CAP-100N' },
-  { mpn: '1N4148W-7-F', quantity: 110, componentType: 'Diode', value: '100V 300mA Fast Switching', footprint: 'SOD-123', location: 'Cabinet D - Bin 03', customerCode: 'DIO-4148' },
-  { mpn: 'AO3400A', quantity: 60, componentType: 'MOSFET', value: '30V 5.7A N-Channel', footprint: 'SOT-23', location: 'Cabinet B - Bin 02', customerCode: 'MOS-002' }
+  { mpn: 'STM32F103C8T6', quantity: 24, componentType: 'IC', value: '32-bit ARM Cortex-M3 MCU', footprint: 'LQFP-48', location: 'Cabinet A - Bin 01', customerCode: 'MCU-001', minStock: 5, unitPrice: 3.20, datasheetUrl: 'https://www.st.com/resource/en/datasheet/stm32f103c8.pdf', supplierPartNo: '497-6063-ND', supplier: 'DigiKey' },
+  { mpn: 'ESP32-WROOM-32E', quantity: 15, componentType: 'IC', value: 'Wi-Fi + BT SoC Module', footprint: 'SMD-38', location: 'Cabinet A - Bin 02', customerCode: 'MOD-002', minStock: 5, unitPrice: 2.85, datasheetUrl: 'https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf', supplierPartNo: '1965-ESP32-WROOM-32E-ND', supplier: 'DigiKey' },
+  { mpn: 'AMS1117-3.3', quantity: 45, componentType: 'IC', value: '3.3V 1A LDO Regulator', footprint: 'SOT-223', location: 'Cabinet A - Bin 04', customerCode: 'REG-003', minStock: 10, unitPrice: 0.25, datasheetUrl: '', supplierPartNo: 'AMS1117-3.3CT', supplier: 'LCSC' },
+  { mpn: 'RC0603FR-0710KL', quantity: 250, componentType: 'Resistor', value: '10k 1% 100mW', footprint: '0603', location: 'Rack R - Drawer 01', customerCode: 'RES-10K', minStock: 100, unitPrice: 0.01, datasheetUrl: '', supplierPartNo: '311-10.0KHRTR-ND', supplier: 'DigiKey' },
+  { mpn: 'CL10B104KB8NNNC', quantity: 320, componentType: 'Capacitor', value: '100nF 50V X7R', footprint: '0603', location: 'Rack C - Drawer 01', customerCode: 'CAP-100N', minStock: 100, unitPrice: 0.015, datasheetUrl: '', supplierPartNo: '1276-1005-1-ND', supplier: 'DigiKey' },
+  { mpn: '1N4148W-7-F', quantity: 110, componentType: 'Diode', value: '100V 300mA Fast Switching', footprint: 'SOD-123', location: 'Cabinet D - Bin 03', customerCode: 'DIO-4148', minStock: 25, unitPrice: 0.04, datasheetUrl: 'https://www.diodes.com/assets/Datasheets/ds30104.pdf', supplierPartNo: '1N4148W-7-FDICT-ND', supplier: 'Mouser' },
+  { mpn: 'AO3400A', quantity: 60, componentType: 'MOSFET', value: '30V 5.7A N-Channel', footprint: 'SOT-23', location: 'Cabinet B - Bin 02', customerCode: 'MOS-002', minStock: 15, unitPrice: 0.08, datasheetUrl: '', supplierPartNo: 'AO3400A', supplier: 'LCSC' }
 ];
 
 /**
@@ -50,7 +50,12 @@ function resolveInventoryColumns(headers) {
     value: -1,
     footprint: -1,
     location: -1,
-    customerCode: -1
+    customerCode: -1,
+    minStock: -1,
+    unitPrice: -1,
+    datasheetUrl: -1,
+    supplierPartNo: -1,
+    supplier: -1
   };
 
   for (let i = 0; i < headers.length; i++) {
@@ -71,6 +76,16 @@ function resolveInventoryColumns(headers) {
       mapping.location = i;
     } else if (mapping.customerCode === -1 && (h.includes('customercode') || h === 'code' || h === 'designator' || h === 'refdes' || h === 'reference')) {
       mapping.customerCode = i;
+    } else if (mapping.minStock === -1 && (h.includes('minstock') || h.includes('threshold') || h.includes('lowstock') || h.includes('reorder'))) {
+      mapping.minStock = i;
+    } else if (mapping.unitPrice === -1 && (h.includes('unitprice') || h.includes('price') || h.includes('cost') || h === 'unitcost')) {
+      mapping.unitPrice = i;
+    } else if (mapping.datasheetUrl === -1 && (h.includes('datasheet') || h.includes('pdf') || h === 'url' || h === 'link')) {
+      mapping.datasheetUrl = i;
+    } else if (mapping.supplierPartNo === -1 && (h.includes('supplierpart') || h.includes('supplierpn') || h.includes('distributorpart'))) {
+      mapping.supplierPartNo = i;
+    } else if (mapping.supplier === -1 && (h === 'supplier' || h === 'vendor' || h === 'distributor' || h === 'source' || h === 'distributorname' || h === 'lcsc' || h === 'digikey' || h === 'mouser')) {
+      mapping.supplier = i;
     }
   }
 
@@ -132,6 +147,38 @@ function readInventorySpreadsheet(filePath) {
       const location = mapping.location !== -1 ? String(row[mapping.location] || '').trim() : '';
       const customerCode = mapping.customerCode !== -1 ? String(row[mapping.customerCode] || '').trim() : '';
 
+      let minStock = 10;
+      if (mapping.minStock !== -1 && row[mapping.minStock] !== undefined) {
+        const parsedMin = parseInt(row[mapping.minStock], 10);
+        if (Number.isFinite(parsedMin) && parsedMin >= 0) {
+          minStock = parsedMin;
+        }
+      }
+
+      let unitPrice = 0.0;
+      if (mapping.unitPrice !== -1 && row[mapping.unitPrice] !== undefined) {
+        const parsedPrice = parseFloat(String(row[mapping.unitPrice]).replace(/[^0-9.-]/g, ''));
+        if (Number.isFinite(parsedPrice) && parsedPrice >= 0) {
+          unitPrice = parsedPrice;
+        }
+      }
+
+      const datasheetUrl = mapping.datasheetUrl !== -1 ? String(row[mapping.datasheetUrl] || '').trim() : '';
+      const supplierPartNo = mapping.supplierPartNo !== -1 ? String(row[mapping.supplierPartNo] || '').trim() : '';
+      let supplier = mapping.supplier !== -1 ? String(row[mapping.supplier] || '').trim() : '';
+
+      // Auto-detect supplier from supplierPartNo if not explicitly set
+      if (!supplier && supplierPartNo) {
+        const cleanSpn = supplierPartNo.trim().toUpperCase();
+        if (/^C\d{4,10}$/i.test(cleanSpn)) {
+          supplier = 'LCSC';
+        } else if (cleanSpn.endsWith('-ND') || cleanSpn.includes('DIGIKEY') || cleanSpn.includes('DIGI-KEY')) {
+          supplier = 'DigiKey';
+        } else if (/^\d{3}-/i.test(cleanSpn) || cleanSpn.includes('MOUSER')) {
+          supplier = 'Mouser';
+        }
+      }
+
       components.push({
         mpn,
         quantity: qty,
@@ -140,7 +187,12 @@ function readInventorySpreadsheet(filePath) {
         value,
         footprint,
         location,
-        customerCode
+        customerCode,
+        minStock,
+        unitPrice,
+        datasheetUrl,
+        supplierPartNo,
+        supplier
       });
     }
 
@@ -171,7 +223,12 @@ function writeInventorySpreadsheet(filePath, components = []) {
         'Value',
         'Footprint',
         'Lab Location',
-        'Customer Code'
+        'Customer Code',
+        'Min Stock Alert',
+        'Unit Price ($)',
+        'Datasheet URL',
+        'Supplier Part Number',
+        'Supplier'
       ]
     ];
 
@@ -183,7 +240,12 @@ function writeInventorySpreadsheet(filePath, components = []) {
         c.value || '',
         c.footprint || '',
         c.location || '',
-        c.customerCode || ''
+        c.customerCode || '',
+        c.minStock !== undefined && c.minStock !== null ? Number(c.minStock) : 10,
+        c.unitPrice !== undefined && c.unitPrice !== null ? Number(c.unitPrice) : 0.0,
+        c.datasheetUrl || '',
+        c.supplierPartNo || c.supplierPn || '',
+        c.supplier || ''
       ]);
     }
 
@@ -197,7 +259,12 @@ function writeInventorySpreadsheet(filePath, components = []) {
       { wch: 22 }, // Value
       { wch: 16 }, // Footprint
       { wch: 24 }, // Location
-      { wch: 18 }  // Customer Code
+      { wch: 18 }, // Customer Code
+      { wch: 16 }, // Min Stock Alert
+      { wch: 14 }, // Unit Price ($)
+      { wch: 32 }, // Datasheet URL
+      { wch: 24 }, // Supplier Part Number
+      { wch: 16 }  // Supplier
     ];
 
     const wb = XLSX.utils.book_new();

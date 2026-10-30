@@ -189,6 +189,11 @@ async function ensureRemoteTable() {
       \`footprint\` VARCHAR(80) DEFAULT '',
       \`location\` VARCHAR(120) DEFAULT '',
       \`customer_code\` VARCHAR(80) DEFAULT '',
+      \`min_stock\` INT NOT NULL DEFAULT 10,
+      \`unit_price\` DECIMAL(10,4) NOT NULL DEFAULT 0.0000,
+      \`datasheet_url\` VARCHAR(500) DEFAULT '',
+      \`supplier_part_no\` VARCHAR(120) DEFAULT '',
+      \`supplier\` VARCHAR(80) DEFAULT '',
       \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       \`deleted_at\` TIMESTAMP NULL DEFAULT NULL,
       INDEX \`idx_mpn\` (\`mpn\`),
@@ -260,6 +265,11 @@ async function ensureRemoteTable() {
 
   try { await p.query('ALTER TABLE `lab_inventory` DROP INDEX `mpn`;'); } catch {}
   try { await p.query('ALTER TABLE `lab_inventory` DROP INDEX `idx_mpn_unique`;'); } catch {}
+  try { await p.query('ALTER TABLE `lab_inventory` ADD COLUMN `min_stock` INT NOT NULL DEFAULT 10;'); } catch {}
+  try { await p.query('ALTER TABLE `lab_inventory` ADD COLUMN `unit_price` DECIMAL(10,4) NOT NULL DEFAULT 0.0000;'); } catch {}
+  try { await p.query('ALTER TABLE `lab_inventory` ADD COLUMN `datasheet_url` VARCHAR(500) DEFAULT \'\';'); } catch {}
+  try { await p.query('ALTER TABLE `lab_inventory` ADD COLUMN `supplier_part_no` VARCHAR(120) DEFAULT \'\';'); } catch {}
+  try { await p.query('ALTER TABLE `lab_inventory` ADD COLUMN `supplier` VARCHAR(80) DEFAULT \'\';'); } catch {}
   try { await p.query('ALTER TABLE `lab_users` ADD COLUMN `role` VARCHAR(30) DEFAULT \'user\';'); } catch {}
   try { await p.query('ALTER TABLE `lab_users` ADD COLUMN `can_delete_all` TINYINT(1) DEFAULT 0;'); } catch {}
   try { await p.query('ALTER TABLE `lab_users` ADD COLUMN `can_modify_inventory` TINYINT(1) DEFAULT 1;'); } catch {}
@@ -277,7 +287,7 @@ async function fetchRemoteInventory() {
   await ensureRemoteTable();
   const p = getPool();
   const [rows] = await p.query(
-    'SELECT mpn, quantity, component_type, value, footprint, location, customer_code, updated_at FROM `lab_inventory` WHERE deleted_at IS NULL ORDER BY mpn ASC'
+    'SELECT mpn, quantity, component_type, value, footprint, location, customer_code, updated_at, min_stock, unit_price, datasheet_url, supplier_part_no, supplier FROM `lab_inventory` WHERE deleted_at IS NULL ORDER BY mpn ASC'
   );
   return rows.map(r => ({
     mpn: r.mpn || '',
@@ -288,6 +298,11 @@ async function fetchRemoteInventory() {
     footprint: r.footprint || '',
     location: r.location || '',
     customerCode: r.customer_code || '',
+    minStock: r.min_stock !== undefined && r.min_stock !== null ? Number(r.min_stock) : 10,
+    unitPrice: r.unit_price !== undefined && r.unit_price !== null ? Number(r.unit_price) : 0.0,
+    datasheetUrl: r.datasheet_url || '',
+    supplierPartNo: r.supplier_part_no || '',
+    supplier: r.supplier || '',
     updatedAt: r.updated_at ? new Date(r.updated_at).getTime() : 0
   }));
 }
@@ -310,7 +325,7 @@ async function pushComponentsToRemote(components) {
 
     const sql = `
       INSERT INTO \`lab_inventory\`
-        (\`mpn\`, \`quantity\`, \`component_type\`, \`value\`, \`footprint\`, \`location\`, \`customer_code\`, \`updated_at\`, \`deleted_at\`)
+        (\`mpn\`, \`quantity\`, \`component_type\`, \`value\`, \`footprint\`, \`location\`, \`customer_code\`, \`min_stock\`, \`unit_price\`, \`datasheet_url\`, \`supplier_part_no\`, \`supplier\`, \`updated_at\`, \`deleted_at\`)
       VALUES ?;
     `;
 
@@ -322,6 +337,11 @@ async function pushComponentsToRemote(components) {
       c.footprint || '',
       c.location || '',
       c.customerCode || '',
+      c.minStock !== undefined && c.minStock !== null ? Number(c.minStock) : 10,
+      c.unitPrice !== undefined && c.unitPrice !== null ? Number(c.unitPrice) : 0.0,
+      c.datasheetUrl || '',
+      c.supplierPartNo || c.supplierPn || '',
+      c.supplier || '',
       new Date(),
       null
     ]);
@@ -802,7 +822,12 @@ async function sync(localComponents = [], mode = 'merge') {
           value: rem.value,
           footprint: rem.footprint,
           location: rem.location,
-          customerCode: rem.customerCode
+          customerCode: rem.customerCode,
+          minStock: rem.minStock !== undefined ? rem.minStock : 10,
+          unitPrice: rem.unitPrice !== undefined ? rem.unitPrice : 0.0,
+          datasheetUrl: rem.datasheetUrl || '',
+          supplierPartNo: rem.supplierPartNo || '',
+          supplier: rem.supplier || ''
         });
         addedFromRemote++;
       }

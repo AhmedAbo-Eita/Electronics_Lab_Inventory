@@ -24,23 +24,23 @@ let activeDb = null;
  * Standard starter inventory seeded into a fresh SQLite database on first launch.
  */
 const DEFAULT_STARTER_COMPONENTS = [
-  { mpn: '1N4148W-7-F', quantity: 110, componentType: 'Diode', value: '100V 300mA Fast Switching', footprint: 'SOD-123', location: 'Cabinet D - Bin 03', customerCode: 'DIO-4148' },
-  { mpn: '2N2222A', quantity: 50, componentType: 'Transistor', value: '40V 600mA NPN', footprint: 'SOT-23', location: 'Cabinet B - Bin 05', customerCode: 'BJT-001' },
-  { mpn: 'AMS1117-3.3', quantity: 45, componentType: 'IC', value: '3.3V 1A LDO Regulator', footprint: 'SOT-223', location: 'Cabinet A - Bin 04', customerCode: 'REG-003' },
-  { mpn: 'AO3400A', quantity: 60, componentType: 'MOSFET', value: '30V 5.7A N-Channel', footprint: 'SOT-23', location: 'Cabinet B - Bin 02', customerCode: 'MOS-002' },
-  { mpn: 'B2B-XH-A(LF)(SN)', quantity: 0, componentType: 'Connector', value: '2-Pin JST-XH 2.5mm', footprint: 'TH-2P', location: 'Cabinet J - Bin 01', customerCode: 'CON-XH2' },
-  { mpn: 'CH340G', quantity: 8, componentType: 'IC', value: 'USB to UART Bridge', footprint: 'SOP-16', location: 'Cabinet A - Bin 09', customerCode: 'USB-005' },
-  { mpn: 'CL10B104KB8NNNC', quantity: 320, componentType: 'Capacitor', value: '100nF 50V', footprint: '0603', location: 'Rack C - Drawer 01', customerCode: 'CAP-100N' },
-  { mpn: 'CL21A106KAYNNNE', quantity: 75, componentType: 'Capacitor', value: '10uF 25V', footprint: '0805', location: 'Rack C - Drawer 04', customerCode: 'CAP-10U' },
-  { mpn: 'ESP32-WROOM-32E', quantity: 15, componentType: 'IC', value: 'Wi-Fi + BT SoC Module', footprint: 'SMD-38', location: 'Cabinet A - Bin 02', customerCode: 'MOD-002' },
-  { mpn: 'IRFZ44NPBF', quantity: 18, componentType: 'MOSFET', value: '55V 49A N-Channel', footprint: 'TO-220', location: 'Cabinet B - Bin 01', customerCode: 'MOS-001' },
-  { mpn: 'LM358DR', quantity: 32, componentType: 'IC', value: 'Dual Op-Amp', footprint: 'SOP-8', location: 'Cabinet A - Bin 06', customerCode: 'AMP-004' },
-  { mpn: 'RC0603FR-0710KL', quantity: 250, componentType: 'Resistor', value: '10k', footprint: '0603', location: 'Rack R - Drawer 01', customerCode: 'RES-10K' },
-  { mpn: 'RC0603FR-074K7L', quantity: 180, componentType: 'Resistor', value: '4.7k', footprint: '0603', location: 'Rack R - Drawer 02', customerCode: 'RES-4K7' },
-  { mpn: 'RC0805FR-07330RL', quantity: 95, componentType: 'Resistor', value: '330R', footprint: '0805', location: 'Rack R - Drawer 05', customerCode: 'RES-330R' },
-  { mpn: 'SRN4018-4R7M', quantity: 6, componentType: 'Inductor', value: '4.7uH 2.5A', footprint: 'SMD', location: 'Cabinet L - Bin 02', customerCode: 'IND-4U7' },
-  { mpn: 'SS34', quantity: 40, componentType: 'Diode', value: '40V 3A Schottky', footprint: 'SMA', location: 'Cabinet D - Bin 01', customerCode: 'DIO-SS34' },
-  { mpn: 'STM32F103C8T6', quantity: 24, componentType: 'IC', value: '32-bit ARM Cortex-M3 MCU', footprint: 'LQFP-48', location: 'Cabinet A - Bin 01', customerCode: 'MCU-001' }
+  { mpn: '1N4148W-7-F', quantity: 110, componentType: 'Diode', value: '100V 300mA Fast Switching', footprint: 'SOD-123', location: 'Cabinet D - Bin 03', customerCode: 'DIO-4148', minStock: 25, unitPrice: 0.04, datasheetUrl: 'https://www.diodes.com/assets/Datasheets/ds30104.pdf', supplierPartNo: '1N4148W-7-FDICT-ND', supplier: 'DigiKey' },
+  { mpn: '2N2222A', quantity: 50, componentType: 'Transistor', value: '40V 600mA NPN', footprint: 'SOT-23', location: 'Cabinet B - Bin 05', customerCode: 'BJT-001', minStock: 15, unitPrice: 0.12, datasheetUrl: '', supplierPartNo: 'MMBT2222A-TP', supplier: 'Mouser' },
+  { mpn: 'AMS1117-3.3', quantity: 45, componentType: 'IC', value: '3.3V 1A LDO Regulator', footprint: 'SOT-223', location: 'Cabinet A - Bin 04', customerCode: 'REG-003', minStock: 10, unitPrice: 0.25, datasheetUrl: '', supplierPartNo: 'AMS1117-3.3CT', supplier: 'LCSC' },
+  { mpn: 'AO3400A', quantity: 60, componentType: 'MOSFET', value: '30V 5.7A N-Channel', footprint: 'SOT-23', location: 'Cabinet B - Bin 02', customerCode: 'MOS-002', minStock: 15, unitPrice: 0.08, datasheetUrl: '', supplierPartNo: 'AO3400A', supplier: 'LCSC' },
+  { mpn: 'B2B-XH-A(LF)(SN)', quantity: 0, componentType: 'Connector', value: '2-Pin JST-XH 2.5mm', footprint: 'TH-2P', location: 'Cabinet J - Bin 01', customerCode: 'CON-XH2', minStock: 20, unitPrice: 0.15, datasheetUrl: '', supplierPartNo: 'B2B-XH-A', supplier: 'DigiKey' },
+  { mpn: 'CH340G', quantity: 8, componentType: 'IC', value: 'USB to UART Bridge', footprint: 'SOP-16', location: 'Cabinet A - Bin 09', customerCode: 'USB-005', minStock: 10, unitPrice: 0.65, datasheetUrl: '', supplierPartNo: 'CH340G-SOIC16', supplier: 'LCSC' },
+  { mpn: 'CL10B104KB8NNNC', quantity: 320, componentType: 'Capacitor', value: '100nF 50V', footprint: '0603', location: 'Rack C - Drawer 01', customerCode: 'CAP-100N', minStock: 100, unitPrice: 0.015, datasheetUrl: '', supplierPartNo: '1276-1005-1-ND', supplier: 'DigiKey' },
+  { mpn: 'CL21A106KAYNNNE', quantity: 75, componentType: 'Capacitor', value: '10uF 25V', footprint: '0805', location: 'Rack C - Drawer 04', customerCode: 'CAP-10U', minStock: 25, unitPrice: 0.045, datasheetUrl: '', supplierPartNo: '1276-2872-1-ND', supplier: 'DigiKey' },
+  { mpn: 'ESP32-WROOM-32E', quantity: 15, componentType: 'IC', value: 'Wi-Fi + BT SoC Module', footprint: 'SMD-38', location: 'Cabinet A - Bin 02', customerCode: 'MOD-002', minStock: 5, unitPrice: 2.85, datasheetUrl: 'https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf', supplierPartNo: '1965-ESP32-WROOM-32E-ND', supplier: 'DigiKey' },
+  { mpn: 'IRFZ44NPBF', quantity: 18, componentType: 'MOSFET', value: '55V 49A N-Channel', footprint: 'TO-220', location: 'Cabinet B - Bin 01', customerCode: 'MOS-001', minStock: 5, unitPrice: 0.95, datasheetUrl: '', supplierPartNo: 'IRFZ44NPBF-ND', supplier: 'DigiKey' },
+  { mpn: 'LM358DR', quantity: 32, componentType: 'IC', value: 'Dual Op-Amp', footprint: 'SOP-8', location: 'Cabinet A - Bin 06', customerCode: 'AMP-004', minStock: 10, unitPrice: 0.22, datasheetUrl: '', supplierPartNo: '296-1014-1-ND', supplier: 'DigiKey' },
+  { mpn: 'RC0603FR-0710KL', quantity: 250, componentType: 'Resistor', value: '10k', footprint: '0603', location: 'Rack R - Drawer 01', customerCode: 'RES-10K', minStock: 100, unitPrice: 0.01, datasheetUrl: '', supplierPartNo: '311-10.0KHRTR-ND', supplier: 'DigiKey' },
+  { mpn: 'RC0603FR-074K7L', quantity: 180, componentType: 'Resistor', value: '4.7k', footprint: '0603', location: 'Rack R - Drawer 02', customerCode: 'RES-4K7', minStock: 50, unitPrice: 0.01, datasheetUrl: '', supplierPartNo: '311-4.70KHRTR-ND', supplier: 'DigiKey' },
+  { mpn: 'RC0805FR-07330RL', quantity: 95, componentType: 'Resistor', value: '330R', footprint: '0805', location: 'Rack R - Drawer 05', customerCode: 'RES-330R', minStock: 30, unitPrice: 0.012, datasheetUrl: '', supplierPartNo: '311-330CRTR-ND', supplier: 'DigiKey' },
+  { mpn: 'SRN4018-4R7M', quantity: 6, componentType: 'Inductor', value: '4.7uH 2.5A', footprint: 'SMD', location: 'Cabinet L - Bin 02', customerCode: 'IND-4U7', minStock: 10, unitPrice: 0.42, datasheetUrl: '', supplierPartNo: 'SRN4018-4R7MCT-ND', supplier: 'DigiKey' },
+  { mpn: 'SS34', quantity: 40, componentType: 'Diode', value: '40V 3A Schottky', footprint: 'SMA', location: 'Cabinet D - Bin 01', customerCode: 'DIO-SS34', minStock: 15, unitPrice: 0.14, datasheetUrl: '', supplierPartNo: 'SS34-TPMSCT-ND', supplier: 'Mouser' },
+  { mpn: 'STM32F103C8T6', quantity: 24, componentType: 'IC', value: '32-bit ARM Cortex-M3 MCU', footprint: 'LQFP-48', location: 'Cabinet A - Bin 01', customerCode: 'MCU-001', minStock: 5, unitPrice: 3.20, datasheetUrl: 'https://www.st.com/resource/en/datasheet/stm32f103c8.pdf', supplierPartNo: '497-6063-ND', supplier: 'DigiKey' }
 ];
 
 /**
@@ -104,7 +104,12 @@ function ensureSchema(db) {
       footprint TEXT DEFAULT '',
       location TEXT DEFAULT '',
       customer_code TEXT DEFAULT '',
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      min_stock INTEGER DEFAULT 10,
+      unit_price REAL DEFAULT 0.0,
+      datasheet_url TEXT DEFAULT '',
+      supplier_part_no TEXT DEFAULT '',
+      supplier TEXT DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_inventory_mpn ON lab_inventory(mpn);
     CREATE INDEX IF NOT EXISTS idx_inventory_type ON lab_inventory(component_type);
@@ -173,6 +178,13 @@ function ensureSchema(db) {
   try { db.run("ALTER TABLE saved_boms ADD COLUMN items_count INTEGER DEFAULT 0;"); } catch {}
   try { db.run("ALTER TABLE saved_boms ADD COLUMN created_by TEXT DEFAULT '';"); } catch {}
 
+  // Schema migrations for metadata & pricing fields
+  try { db.run("ALTER TABLE lab_inventory ADD COLUMN min_stock INTEGER DEFAULT 10;"); } catch {}
+  try { db.run("ALTER TABLE lab_inventory ADD COLUMN unit_price REAL DEFAULT 0.0;"); } catch {}
+  try { db.run("ALTER TABLE lab_inventory ADD COLUMN datasheet_url TEXT DEFAULT '';"); } catch {}
+  try { db.run("ALTER TABLE lab_inventory ADD COLUMN supplier_part_no TEXT DEFAULT '';"); } catch {}
+  try { db.run("ALTER TABLE lab_inventory ADD COLUMN supplier TEXT DEFAULT '';"); } catch {}
+
   // Schema migration: allow duplicate MPNs across different locations/rows
   try {
     const tableSql = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_inventory';");
@@ -221,8 +233,8 @@ function flushToDisk(db) {
 function seedStarterComponents(db) {
   const insertStmt = db.prepare(`
     INSERT OR IGNORE INTO lab_inventory
-      (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at, min_stock, unit_price, datasheet_url, supplier_part_no, supplier)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?)
   `);
 
   db.run('BEGIN TRANSACTION;');
@@ -234,7 +246,12 @@ function seedStarterComponents(db) {
       c.value,
       c.footprint,
       c.location,
-      c.customerCode
+      c.customerCode,
+      c.minStock !== undefined ? c.minStock : 10,
+      c.unitPrice !== undefined ? c.unitPrice : 0.0,
+      c.datasheetUrl || '',
+      c.supplierPartNo || '',
+      c.supplier || ''
     ]);
   }
   db.run('COMMIT;');
@@ -288,7 +305,7 @@ async function getAllComponents() {
   const { dbFilePath } = getDatabasePaths();
   try {
     const res = activeDb.exec(`
-      SELECT mpn, quantity, component_type, value, footprint, location, customer_code, updated_at
+      SELECT mpn, quantity, component_type, value, footprint, location, customer_code, updated_at, min_stock, unit_price, datasheet_url, supplier_part_no, supplier
       FROM lab_inventory
       ORDER BY mpn ASC;
     `);
@@ -306,7 +323,12 @@ async function getAllComponents() {
       footprint: String(v[4] || ''),
       location: String(v[5] || ''),
       customerCode: String(v[6] || ''),
-      updatedAt: String(v[7] || '')
+      updatedAt: String(v[7] || ''),
+      minStock: v[8] !== null && v[8] !== undefined && !isNaN(Number(v[8])) ? Number(v[8]) : 10,
+      unitPrice: v[9] !== null && v[9] !== undefined && !isNaN(Number(v[9])) ? Number(v[9]) : 0.0,
+      datasheetUrl: String(v[10] || ''),
+      supplierPartNo: String(v[11] || ''),
+      supplier: String(v[12] || '')
     }));
 
     return { ok: true, list: rows, path: dbFilePath };
@@ -333,8 +355,8 @@ async function saveAllComponents(components = []) {
 
     const insertStmt = activeDb.prepare(`
       INSERT INTO lab_inventory
-        (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at, min_stock, unit_price, datasheet_url, supplier_part_no, supplier)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?)
     `);
 
     for (const c of components) {
@@ -346,7 +368,12 @@ async function saveAllComponents(components = []) {
         c.value || '',
         c.footprint || '',
         c.location || '',
-        c.customerCode || ''
+        c.customerCode || '',
+        c.minStock !== undefined && c.minStock !== null && !isNaN(Number(c.minStock)) ? Number(c.minStock) : 10,
+        c.unitPrice !== undefined && c.unitPrice !== null && !isNaN(Number(c.unitPrice)) ? Number(c.unitPrice) : 0.0,
+        c.datasheetUrl || '',
+        c.supplierPartNo || c.supplierPn || '',
+        c.supplier || ''
       ]);
     }
 
@@ -374,19 +401,40 @@ async function importFromExternalDbFile(externalFilePath) {
     const extDb = new SQL.Database(fileBuffer);
 
     let res = [];
+    let hasExtendedCols = false;
+    let hasSupplierCol = false;
     try {
       res = extDb.exec(`
-        SELECT mpn, quantity, component_type, value, footprint, location, customer_code
+        SELECT mpn, quantity, component_type, value, footprint, location, customer_code, min_stock, unit_price, datasheet_url, supplier_part_no, supplier
         FROM lab_inventory
         ORDER BY mpn ASC;
       `);
+      hasExtendedCols = true;
+      hasSupplierCol = true;
     } catch {
-      // Fallback: check if bom_availability_report table exists
-      res = extDb.exec(`
-        SELECT mpn, qty_per_board, component_type, value, footprint, lab_location, customer_code
-        FROM bom_availability_report
-        ORDER BY mpn ASC;
-      `);
+      try {
+        res = extDb.exec(`
+          SELECT mpn, quantity, component_type, value, footprint, location, customer_code, min_stock, unit_price, datasheet_url, supplier_part_no
+          FROM lab_inventory
+          ORDER BY mpn ASC;
+        `);
+        hasExtendedCols = true;
+      } catch {
+        try {
+          res = extDb.exec(`
+            SELECT mpn, quantity, component_type, value, footprint, location, customer_code
+            FROM lab_inventory
+            ORDER BY mpn ASC;
+          `);
+        } catch {
+          // Fallback: check if bom_availability_report table exists
+          res = extDb.exec(`
+            SELECT mpn, qty_per_board, component_type, value, footprint, lab_location, customer_code
+            FROM bom_availability_report
+            ORDER BY mpn ASC;
+          `);
+        }
+      }
     }
 
     extDb.close();
@@ -403,7 +451,12 @@ async function importFromExternalDbFile(externalFilePath) {
       value: String(v[3] || ''),
       footprint: String(v[4] || ''),
       location: String(v[5] || ''),
-      customerCode: String(v[6] || '')
+      customerCode: String(v[6] || ''),
+      minStock: hasExtendedCols && v[7] !== null && v[7] !== undefined ? Number(v[7]) : 10,
+      unitPrice: hasExtendedCols && v[8] !== null && v[8] !== undefined ? Number(v[8]) : 0.0,
+      datasheetUrl: hasExtendedCols ? String(v[9] || '') : '',
+      supplierPartNo: hasExtendedCols ? String(v[10] || '') : '',
+      supplier: hasSupplierCol ? String(v[11] || '') : ''
     }));
 
     return {
@@ -432,8 +485,8 @@ async function exportToExternalDbFile(targetFilePath, components = []) {
     outDb.run('BEGIN TRANSACTION;');
     const insertStmt = outDb.prepare(`
       INSERT OR REPLACE INTO lab_inventory
-        (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        (mpn, quantity, component_type, value, footprint, location, customer_code, updated_at, min_stock, unit_price, datasheet_url, supplier_part_no, supplier)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?)
     `);
 
     for (const c of components) {
@@ -445,7 +498,12 @@ async function exportToExternalDbFile(targetFilePath, components = []) {
         c.value || '',
         c.footprint || '',
         c.location || '',
-        c.customerCode || ''
+        c.customerCode || '',
+        c.minStock !== undefined && c.minStock !== null ? Number(c.minStock) : 10,
+        c.unitPrice !== undefined && c.unitPrice !== null ? Number(c.unitPrice) : 0.0,
+        c.datasheetUrl || '',
+        c.supplierPartNo || c.supplierPn || '',
+        c.supplier || ''
       ]);
     }
     outDb.run('COMMIT;');

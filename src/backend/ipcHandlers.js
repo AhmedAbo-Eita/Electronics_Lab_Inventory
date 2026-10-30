@@ -592,12 +592,30 @@ function registerIpcHandlers({ getMainWindow, setDirtyState, getDirtyState, setF
     return updaterService.runInstaller(filePath);
   });
 
-  ipcMain.handle('app:open-external', (_event, url) => {
-    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
-      shell.openExternal(url);
-      return { ok: true };
+  ipcMain.handle('app:open-external', async (_event, target) => {
+    if (!target || typeof target !== 'string') return { ok: false, error: 'Empty target' };
+    const clean = target.trim();
+    try {
+      if (clean.startsWith('https://') || clean.startsWith('http://')) {
+        await shell.openExternal(clean);
+        return { ok: true };
+      }
+      // If it's a local file path
+      const fs = require('fs');
+      if (fs.existsSync(clean)) {
+        const err = await shell.openPath(clean);
+        if (err) return { ok: false, error: err };
+        return { ok: true };
+      }
+      // Try opening as external if it looks like a web address (e.g. www.ti.com)
+      if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(clean)) {
+        await shell.openExternal('https://' + clean);
+        return { ok: true };
+      }
+      return { ok: false, error: 'Invalid URL or file not found' };
+    } catch (err) {
+      return { ok: false, error: err.message };
     }
-    return { ok: false, error: 'Invalid URL' };
   });
 
   ipcMain.handle('app:get-system-info', () => {

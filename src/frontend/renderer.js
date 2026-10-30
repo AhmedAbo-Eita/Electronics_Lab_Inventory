@@ -352,8 +352,42 @@ function normalizeString(str) {
     .toUpperCase();
 }
 
-function createComponent(mpn = '', quantity = 0, type = '', value = '', footprint = '', location = '', customerCode = '') {
+function detectSupplierFromPn(pn) {
+  if (!pn) return '';
+  const clean = String(pn).trim().toUpperCase();
+  if (/^C\d{4,10}$/i.test(clean)) {
+    return 'LCSC';
+  }
+  if (clean.endsWith('-ND') || clean.endsWith('ND') || clean.includes('DIGIKEY') || clean.includes('DIGI-KEY')) {
+    return 'DigiKey';
+  }
+  if (/^\d{3}-/i.test(clean) || clean.includes('MOUSER')) {
+    return 'Mouser';
+  }
+  return '';
+}
+
+function createComponent(
+  mpn = '',
+  quantity = 0,
+  type = '',
+  value = '',
+  footprint = '',
+  location = '',
+  customerCode = '',
+  minStock = 10,
+  unitPrice = 0.0,
+  datasheetUrl = '',
+  supplierPartNo = '',
+  supplier = ''
+) {
   const q = Number.isFinite(Number(quantity)) ? Math.max(0, parseInt(quantity, 10)) : 0;
+  const ms = Number.isFinite(Number(minStock)) ? Math.max(0, parseInt(minStock, 10)) : 10;
+  const up = Number.isFinite(Number(unitPrice)) ? Math.max(0, parseFloat(unitPrice)) : 0.0;
+  let supp = String(supplier || '').trim();
+  if (!supp && supplierPartNo) {
+    supp = detectSupplierFromPn(supplierPartNo);
+  }
   return {
     mpn: String(mpn || '').trim(),
     quantity: q,
@@ -361,7 +395,12 @@ function createComponent(mpn = '', quantity = 0, type = '', value = '', footprin
     value: String(value || '').trim(),
     footprint: String(footprint || '').trim(),
     location: String(location || '').trim(),
-    customerCode: String(customerCode || '').trim()
+    customerCode: String(customerCode || '').trim(),
+    minStock: ms,
+    unitPrice: up,
+    datasheetUrl: String(datasheetUrl || '').trim(),
+    supplierPartNo: String(supplierPartNo || '').trim(),
+    supplier: supp
   };
 }
 
@@ -381,7 +420,12 @@ function areComponentListsEqual(a, b) {
       c1.value !== c2.value ||
       c1.footprint !== c2.footprint ||
       c1.location !== c2.location ||
-      c1.customerCode !== c2.customerCode
+      c1.customerCode !== c2.customerCode ||
+      c1.minStock !== c2.minStock ||
+      c1.unitPrice !== c2.unitPrice ||
+      c1.datasheetUrl !== c2.datasheetUrl ||
+      c1.supplierPartNo !== c2.supplierPartNo ||
+      (c1.supplier || '') !== (c2.supplier || '')
     ) {
       return false;
     }
@@ -406,10 +450,11 @@ function searchComponentByMPN(list, mpn) {
   return -1;
 }
 
-function matchesComponentFilter(comp, filterText, typeFilter, stockFilter) {
+function matchesComponentFilter(comp, filterText, typeFilter, stockFilter, supplierFilter) {
   const normalizedQuery = normalizeString(filterText);
   const checkType = Boolean(typeFilter) && typeFilter.toLowerCase() !== 'all types';
   const checkStock = Boolean(stockFilter) && stockFilter.toLowerCase() !== 'all stock';
+  const checkSupplier = Boolean(supplierFilter) && supplierFilter.toLowerCase() !== 'all suppliers';
 
   let textMatched = !normalizedQuery;
   if (!textMatched) {
@@ -420,7 +465,9 @@ function matchesComponentFilter(comp, filterText, typeFilter, stockFilter) {
       comp.value,
       comp.footprint,
       comp.location,
-      comp.customerCode
+      comp.customerCode,
+      comp.supplierPartNo || '',
+      comp.supplier || ''
     ];
     textMatched = fields.some((f) => normalizeString(f).includes(normalizedQuery));
   }
@@ -433,19 +480,31 @@ function matchesComponentFilter(comp, filterText, typeFilter, stockFilter) {
   let stockMatched = true;
   if (checkStock) {
     const qty = comp.quantity;
+    const threshold = comp.minStock !== undefined ? comp.minStock : 10;
     const sf = stockFilter.toLowerCase();
     if (sf.includes('out of stock')) {
       stockMatched = qty <= 0;
     } else if (sf.includes('low stock')) {
-      stockMatched = qty > 0 && qty <= LOW_STOCK_THRESHOLD;
+      stockMatched = qty > 0 && qty <= threshold;
     } else if (sf.includes('in stock')) {
       stockMatched = qty > 0;
     } else if (sf.includes('healthy')) {
-      stockMatched = qty > LOW_STOCK_THRESHOLD;
+      stockMatched = qty > threshold;
     }
   }
 
-  return textMatched && typeMatched && stockMatched;
+  let supplierMatched = true;
+  if (checkSupplier) {
+    const sFilter = supplierFilter.trim().toLowerCase();
+    const compSupp = (comp.supplier || '').trim().toLowerCase();
+    if (sFilter === 'other') {
+      supplierMatched = !compSupp || (compSupp !== 'digikey' && compSupp !== 'digi-key' && compSupp !== 'mouser' && compSupp !== 'lcsc');
+    } else {
+      supplierMatched = compSupp === sFilter || (sFilter === 'digikey' && compSupp === 'digi-key');
+    }
+  }
+
+  return textMatched && typeMatched && stockMatched && supplierMatched;
 }
 
 // ============================================================================
@@ -462,6 +521,8 @@ function renderInventoryTable(overrideSearchQuery = null) {
       : document.getElementById('quickFilterLineEdit').value;
   const typeFilter = document.getElementById('typeFilterComboBox').value;
   const stockFilter = document.getElementById('stockFilterComboBox').value;
+  const supplierFilterEl = document.getElementById('supplierFilterComboBox');
+  const supplierFilter = supplierFilterEl ? supplierFilterEl.value : 'All Suppliers';
 
   const displayList = [...componentList];
   if (invSortCol !== null) {
@@ -497,6 +558,18 @@ function renderInventoryTable(overrideSearchQuery = null) {
           vA = a.customerCode.toLowerCase();
           vB = b.customerCode.toLowerCase();
           break;
+        case 7:
+          vA = a.minStock !== undefined ? a.minStock : 10;
+          vB = b.minStock !== undefined ? b.minStock : 10;
+          break;
+        case 8:
+          vA = a.unitPrice !== undefined ? a.unitPrice : 0;
+          vB = b.unitPrice !== undefined ? b.unitPrice : 0;
+          break;
+        case 9:
+          vA = (a.supplier || '').toLowerCase();
+          vB = (b.supplier || '').toLowerCase();
+          break;
         default:
           vA = '';
           vB = '';
@@ -511,7 +584,7 @@ function renderInventoryTable(overrideSearchQuery = null) {
 
   for (let rowIndex = 0; rowIndex < displayList.length; rowIndex++) {
     const comp = displayList[rowIndex];
-    const isVisible = matchesComponentFilter(comp, query, typeFilter, stockFilter);
+    const isVisible = matchesComponentFilter(comp, query, typeFilter, stockFilter, supplierFilter);
     if (!isVisible) continue;
     visibleCount++;
 
@@ -523,14 +596,15 @@ function renderInventoryTable(overrideSearchQuery = null) {
       tr.classList.add('selected-row');
     }
 
+    const threshold = comp.minStock !== undefined && comp.minStock !== null ? comp.minStock : 10;
     let stockClass = 'stock-ok';
-    let stockTitle = 'Healthy Stock';
+    let stockTitle = `Healthy Stock (> ${threshold} units)`;
     if (comp.quantity <= 0) {
       stockClass = 'stock-err';
       stockTitle = 'Out of Stock (0 units)';
-    } else if (comp.quantity <= LOW_STOCK_THRESHOLD) {
+    } else if (comp.quantity <= threshold) {
       stockClass = 'stock-warn';
-      stockTitle = 'Low Stock (<= 10 units)';
+      stockTitle = `Low Stock (<= ${threshold} units)`;
     }
 
     // Column 0: MPN
@@ -586,6 +660,91 @@ function renderInventoryTable(overrideSearchQuery = null) {
       tr.appendChild(td);
     }
 
+    // Column 7: Min Stock Alert
+    const tdMinStock = document.createElement('td');
+    tdMinStock.className = 'cell-center';
+    tdMinStock.textContent = String(threshold);
+    tdMinStock.title = `Alert threshold: <= ${threshold} units`;
+    tdMinStock.addEventListener('dblclick', (e) => {
+      if (activeSubTab !== 'EditComponentTab') return;
+      e.stopPropagation();
+      startInlineCellEdit(tdMinStock, comp.mpn, 7, String(threshold));
+    });
+    tr.appendChild(tdMinStock);
+
+    // Column 8: Unit Price
+    const tdPrice = document.createElement('td');
+    tdPrice.className = 'cell-right';
+    const priceVal = Number(comp.unitPrice) || 0.0;
+    tdPrice.textContent = `$${priceVal.toFixed(3)}`;
+    tdPrice.addEventListener('dblclick', (e) => {
+      if (activeSubTab !== 'EditComponentTab') return;
+      e.stopPropagation();
+      startInlineCellEdit(tdPrice, comp.mpn, 8, String(priceVal));
+    });
+    tr.appendChild(tdPrice);
+
+    // Column 9: Supplier Badge
+    const tdSupplier = document.createElement('td');
+    const suppVal = comp.supplier ? comp.supplier.trim() : '';
+    let suppClass = 'supplier-badge-other';
+    const suppUpper = suppVal.toUpperCase();
+    if (suppUpper === 'DIGIKEY' || suppUpper === 'DIGI-KEY') {
+      suppClass = 'supplier-badge-digikey';
+    } else if (suppUpper === 'MOUSER') {
+      suppClass = 'supplier-badge-mouser';
+    } else if (suppUpper === 'LCSC') {
+      suppClass = 'supplier-badge-lcsc';
+    }
+
+    if (suppVal) {
+      const suppBadge = document.createElement('span');
+      suppBadge.className = `supplier-badge ${suppClass}`;
+      suppBadge.textContent = suppVal;
+      tdSupplier.appendChild(suppBadge);
+    } else {
+      const noneSpan = document.createElement('span');
+      noneSpan.className = 'supplier-badge-none';
+      noneSpan.textContent = '—';
+      tdSupplier.appendChild(noneSpan);
+    }
+
+    tdSupplier.addEventListener('dblclick', (e) => {
+      if (activeSubTab !== 'EditComponentTab') return;
+      e.stopPropagation();
+      startInlineCellEdit(tdSupplier, comp.mpn, 9, suppVal);
+    });
+    tr.appendChild(tdSupplier);
+
+    // Actions (Datasheet Link / Button)
+    const tdActions = document.createElement('td');
+    tdActions.className = 'cell-center';
+    const dsBtn = document.createElement('button');
+    dsBtn.type = 'button';
+    dsBtn.className = 'btn-table-action';
+    if (comp.datasheetUrl) {
+      dsBtn.title = `Open Datasheet: ${comp.datasheetUrl}`;
+      dsBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span>PDF</span>
+      `;
+      dsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.electronAPI.openExternalUrl(comp.datasheetUrl);
+      });
+    } else {
+      dsBtn.disabled = true;
+      dsBtn.title = 'No datasheet linked';
+      dsBtn.innerHTML = `<span>—</span>`;
+    }
+    tdActions.appendChild(dsBtn);
+    tr.appendChild(tdActions);
+
     tr.addEventListener('click', () => {
       const idx = searchComponentByMPN(componentList, comp.mpn);
       if (idx === -1) return;
@@ -626,8 +785,12 @@ function startInlineCellEdit(td, canonicalMPN, colIndex, initialText) {
   const comp = componentList[idx];
 
   const input = document.createElement('input');
-  input.type = colIndex === 1 ? 'number' : 'text';
-  if (colIndex === 1) input.min = '0';
+  input.type = (colIndex === 1 || colIndex === 7 || colIndex === 8) ? 'number' : 'text';
+  if (colIndex === 1 || colIndex === 7) input.min = '0';
+  if (colIndex === 8) {
+    input.min = '0';
+    input.step = '0.001';
+  }
   input.value = initialText;
   input.className = 'inline-cell-input';
 
@@ -657,6 +820,15 @@ function startInlineCellEdit(td, canonicalMPN, colIndex, initialText) {
       case 6:
         comp.customerCode = newVal;
         break;
+      case 7:
+        comp.minStock = Math.max(0, parseInt(newVal, 10) || 0);
+        break;
+      case 8:
+        comp.unitPrice = Math.max(0, parseFloat(newVal.replace(/[^0-9.-]/g, '')) || 0.0);
+        break;
+      case 9:
+        comp.supplier = newVal;
+        break;
     }
     populateInspectorForComponent(comp);
     renderInventoryTable();
@@ -664,7 +836,7 @@ function startInlineCellEdit(td, canonicalMPN, colIndex, initialText) {
     showToast(`Updated ${comp.mpn}`);
 
     if (String(initialText).trim() !== String(newVal).trim()) {
-      const colNames = ['', 'Quantity', 'Type', 'Value', 'Footprint', 'Location', 'Customer Code'];
+      const colNames = ['', 'Quantity', 'Type', 'Value', 'Footprint', 'Location', 'Customer Code', 'Min Stock', 'Unit Price', 'Supplier'];
       const fieldName = colNames[colIndex] || 'Field';
       logAuditRecord('EDIT', comp.mpn, `Inline edited ${fieldName}: '${initialText}' → '${newVal}'`);
     }
@@ -685,12 +857,15 @@ function updateDashboardMetrics() {
   const uniqueParts = componentList.length;
   let totalUnits = 0;
   let lowOrOutCount = 0;
+  let totalValuation = 0.0;
 
   for (const c of componentList) {
     totalUnits += c.quantity;
-    if (c.quantity <= LOW_STOCK_THRESHOLD) {
+    const threshold = c.minStock !== undefined && c.minStock !== null ? c.minStock : 10;
+    if (c.quantity <= threshold) {
       lowOrOutCount++;
     }
+    totalValuation += (c.quantity * (Number(c.unitPrice) || 0));
   }
 
   animateCounter(document.getElementById('statUniquePartsValue'), uniqueParts);
@@ -699,6 +874,11 @@ function updateDashboardMetrics() {
   const lowEl = document.getElementById('statLowStockValue');
   animateCounter(lowEl, lowOrOutCount);
   lowEl.className = 'stat-card-value ' + (lowOrOutCount > 0 ? 'status-warn' : 'status-saved');
+
+  const valEl = document.getElementById('statTotalValuationValue');
+  if (valEl) {
+    valEl.textContent = `$${totalValuation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
 
   const isDirty = !areComponentListsEqual(componentListOldSave, componentList);
   const syncEl = document.getElementById('statSyncStatusValue');
@@ -749,6 +929,49 @@ function populateInspectorForComponent(comp) {
   editCode.value = comp.customerCode;
   editCode.disabled = false;
 
+  const editMinStock = document.getElementById('editMinStockSpinBox');
+  if (editMinStock) {
+    editMinStock.value = comp.minStock !== undefined ? comp.minStock : 10;
+    editMinStock.disabled = false;
+  }
+
+  const editPrice = document.getElementById('editUnitPriceLineEdit');
+  if (editPrice) {
+    editPrice.value = comp.unitPrice !== undefined ? comp.unitPrice : 0.0;
+    editPrice.disabled = false;
+  }
+
+  const editDs = document.getElementById('editDatasheetUrlLineEdit');
+  if (editDs) {
+    editDs.value = comp.datasheetUrl || '';
+    editDs.disabled = false;
+  }
+
+  const editSupp = document.getElementById('editSupplierPartNoLineEdit');
+  if (editSupp) {
+    editSupp.value = comp.supplierPartNo || '';
+    editSupp.disabled = false;
+  }
+
+  const editSuppCombo = document.getElementById('editSupplierComboBox');
+  if (editSuppCombo) {
+    const curSupp = (comp.supplier || '').trim();
+    const optFound = Array.from(editSuppCombo.options).find(
+      (opt) => opt.value.toLowerCase() === curSupp.toLowerCase()
+    );
+    if (optFound) {
+      editSuppCombo.value = optFound.value;
+    } else {
+      editSuppCombo.value = curSupp ? 'Other' : '';
+    }
+    editSuppCombo.disabled = false;
+  }
+
+  const openDsBtn = document.getElementById('openDatasheetBtn');
+  if (openDsBtn) {
+    openDsBtn.disabled = !comp.datasheetUrl;
+  }
+
   document.getElementById('applyEditspushButton').disabled = false;
   document.getElementById('deleteComponentpushButton').disabled = false;
   document.getElementById('incStockPushButton').disabled = false;
@@ -761,6 +984,34 @@ function populateInspectorForComponent(comp) {
   document.getElementById('foundedTypeLable').textContent = comp.type || '-';
   document.getElementById('foundedValueLabel').textContent = comp.value || '-';
   document.getElementById('foundedCustomerCodeLabel').textContent = comp.customerCode || '-';
+
+  const fMin = document.getElementById('foundedMinStockLabel');
+  if (fMin) fMin.textContent = `${comp.minStock !== undefined ? comp.minStock : 10} units`;
+
+  const fPrice = document.getElementById('foundedUnitPriceLabel');
+  if (fPrice) fPrice.textContent = `$${(Number(comp.unitPrice) || 0).toFixed(3)}`;
+
+  const fDs = document.getElementById('foundedDatasheetLabel');
+  if (fDs) {
+    if (comp.datasheetUrl) {
+      fDs.innerHTML = `<a href="javascript:void(0)" class="datasheet-link-active" title="${comp.datasheetUrl}">Open Datasheet</a>`;
+      const linkEl = fDs.querySelector('a');
+      if (linkEl) {
+        linkEl.onclick = (e) => {
+          e.preventDefault();
+          window.electronAPI.openExternalUrl(comp.datasheetUrl);
+        };
+      }
+    } else {
+      fDs.textContent = '-';
+    }
+  }
+
+  const fSupp = document.getElementById('foundedSupplierPartNoLabel');
+  if (fSupp) fSupp.textContent = comp.supplierPartNo || '-';
+
+  const fSuppName = document.getElementById('foundedSupplierLabel');
+  if (fSuppName) fSuppName.textContent = comp.supplier || '-';
 }
 
 function resetEditTabState() {
@@ -794,6 +1045,41 @@ function resetEditTabState() {
   editCode.value = '';
   editCode.disabled = true;
 
+  const editMinStock = document.getElementById('editMinStockSpinBox');
+  if (editMinStock) {
+    editMinStock.value = 10;
+    editMinStock.disabled = true;
+  }
+
+  const editPrice = document.getElementById('editUnitPriceLineEdit');
+  if (editPrice) {
+    editPrice.value = '0.00';
+    editPrice.disabled = true;
+  }
+
+  const editDs = document.getElementById('editDatasheetUrlLineEdit');
+  if (editDs) {
+    editDs.value = '';
+    editDs.disabled = true;
+  }
+
+  const editSupp = document.getElementById('editSupplierPartNoLineEdit');
+  if (editSupp) {
+    editSupp.value = '';
+    editSupp.disabled = true;
+  }
+
+  const editSuppCombo = document.getElementById('editSupplierComboBox');
+  if (editSuppCombo) {
+    editSuppCombo.selectedIndex = 0;
+    editSuppCombo.disabled = true;
+  }
+
+  const openDsBtn = document.getElementById('openDatasheetBtn');
+  if (openDsBtn) {
+    openDsBtn.disabled = true;
+  }
+
   document.getElementById('applyEditspushButton').disabled = true;
   document.getElementById('deleteComponentpushButton').disabled = true;
   document.getElementById('incStockPushButton').disabled = true;
@@ -811,6 +1097,17 @@ function clearAddComponentForm() {
   document.getElementById('typeComboBox').selectedIndex = 0;
   document.getElementById('footprintComboBox').value = 'SOT-8';
   document.getElementById('quantitySpinBox').value = 0;
+
+  const addMin = document.getElementById('minStockSpinBox');
+  if (addMin) addMin.value = 10;
+  const addPrice = document.getElementById('unitPriceLineEdit');
+  if (addPrice) addPrice.value = '0.00';
+  const addDs = document.getElementById('datasheetUrlLineEdit');
+  if (addDs) addDs.value = '';
+  const addSupp = document.getElementById('supplierPartNoLineEdit');
+  if (addSupp) addSupp.value = '';
+  const addSuppCombo = document.getElementById('supplierComboBox');
+  if (addSuppCombo) addSuppCombo.selectedIndex = 0;
 }
 
 // ============================================================================
@@ -1064,15 +1361,29 @@ async function onAddPushButtonClicked() {
   const userCustomerCode = document.getElementById('addCustomerCodeLineEdit').value.trim();
   const userQuantity = Math.max(0, parseInt(document.getElementById('quantitySpinBox').value, 10) || 0);
 
+  const minStockInput = document.getElementById('minStockSpinBox');
+  const userMinStock = minStockInput ? Math.max(0, parseInt(minStockInput.value, 10) || 10) : 10;
+
+  const unitPriceInput = document.getElementById('unitPriceLineEdit');
+  const userUnitPrice = unitPriceInput ? Math.max(0, parseFloat(unitPriceInput.value) || 0.0) : 0.0;
+
+  const userDatasheet = document.getElementById('datasheetUrlLineEdit') ? document.getElementById('datasheetUrlLineEdit').value.trim() : '';
+  const userSupplierPn = document.getElementById('supplierPartNoLineEdit') ? document.getElementById('supplierPartNoLineEdit').value.trim() : '';
+  const supplierCombo = document.getElementById('supplierComboBox');
+  let userSupplier = supplierCombo ? supplierCombo.value.trim() : '';
+  if (!userSupplier && userSupplierPn) {
+    userSupplier = detectSupplierFromPn(userSupplierPn);
+  }
+
   const existingIdx = searchComponentByMPN(componentList, userMPN);
   if (existingIdx === -1) {
     componentList.push(
-      createComponent(userMPN, userQuantity, userType, userValue, userFootprint, userLocation, userCustomerCode)
+      createComponent(userMPN, userQuantity, userType, userValue, userFootprint, userLocation, userCustomerCode, userMinStock, userUnitPrice, userDatasheet, userSupplierPn, userSupplier)
     );
     logAuditRecord(
       'ADD',
       userMPN,
-      `Added new part: Qty ${userQuantity}, Loc: '${userLocation}', Type: '${userType || 'N/A'}', Val: '${userValue || 'N/A'}'`
+      `Added new part: Qty ${userQuantity}, Loc: '${userLocation}', Type: '${userType || 'N/A'}', Val: '${userValue || 'N/A'}', Price: $${userUnitPrice.toFixed(2)}, MinStock: ${userMinStock}${userSupplier ? `, Supplier: ${userSupplier}` : ''}`
     );
     renderInventoryTable();
     refreshBomAnalysis();
@@ -1178,7 +1489,7 @@ async function onResetPushButtonClicked() {
     }
 
     componentList = (dbRes.list || []).map((c) =>
-      createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode)
+      createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode, c.minStock, c.unitPrice, c.datasheetUrl, c.supplierPartNo, c.supplier)
     );
     componentListOldSave = cloneComponentList(componentList);
     resetEditTabState();
@@ -1263,7 +1574,7 @@ async function onImportPushButtonClicked() {
   }
 
   const incomingList = (res.list || []).map((c) =>
-    createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode)
+    createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode, c.minStock, c.unitPrice, c.datasheetUrl, c.supplierPartNo)
   );
 
   if (incomingList.length === 0) {
@@ -1331,6 +1642,10 @@ async function onImportPushButtonClicked() {
         if (!target.footprint && inc.footprint) target.footprint = inc.footprint;
         if (!target.location && inc.location) target.location = inc.location;
         if (!target.customerCode && inc.customerCode) target.customerCode = inc.customerCode;
+        if ((!target.minStock || target.minStock === 10) && inc.minStock && inc.minStock !== 10) target.minStock = inc.minStock;
+        if (!target.unitPrice && inc.unitPrice) target.unitPrice = inc.unitPrice;
+        if (!target.datasheetUrl && inc.datasheetUrl) target.datasheetUrl = inc.datasheetUrl;
+        if (!target.supplierPartNo && inc.supplierPartNo) target.supplierPartNo = inc.supplierPartNo;
         mergedCount++;
       } else {
         componentList.push(inc);
@@ -1507,6 +1822,27 @@ function onApplyEditspushButtonClicked() {
   comp.value = document.getElementById('editValueLineEdit').value.trim();
   comp.customerCode = document.getElementById('editCustomerCodeLineEdit').value.trim();
 
+  const editMinStockEl = document.getElementById('editMinStockSpinBox');
+  if (editMinStockEl) comp.minStock = Math.max(0, parseInt(editMinStockEl.value, 10) || 0);
+
+  const editPriceEl = document.getElementById('editUnitPriceLineEdit');
+  if (editPriceEl) comp.unitPrice = Math.max(0, parseFloat(editPriceEl.value) || 0.0);
+
+  const editDsEl = document.getElementById('editDatasheetUrlLineEdit');
+  if (editDsEl) comp.datasheetUrl = editDsEl.value.trim();
+
+  const editSuppEl = document.getElementById('editSupplierPartNoLineEdit');
+  if (editSuppEl) comp.supplierPartNo = editSuppEl.value.trim();
+
+  const editSuppCombo = document.getElementById('editSupplierComboBox');
+  if (editSuppCombo) {
+    let chosenSupp = editSuppCombo.value.trim();
+    if (!chosenSupp && comp.supplierPartNo) {
+      chosenSupp = detectSupplierFromPn(comp.supplierPartNo);
+    }
+    comp.supplier = chosenSupp;
+  }
+
   // Compute diff summary for audit history
   const diffParts = [];
   if (oldComp.quantity !== comp.quantity) diffParts.push(`Qty: ${oldComp.quantity} → ${comp.quantity}`);
@@ -1515,6 +1851,11 @@ function onApplyEditspushButtonClicked() {
   if (oldComp.footprint !== comp.footprint) diffParts.push(`FP: '${oldComp.footprint || 'N/A'}' → '${comp.footprint || 'N/A'}'`);
   if (oldComp.type !== comp.type) diffParts.push(`Type: '${oldComp.type || 'N/A'}' → '${comp.type || 'N/A'}'`);
   if (oldComp.customerCode !== comp.customerCode) diffParts.push(`Code: '${oldComp.customerCode || 'N/A'}' → '${comp.customerCode || 'N/A'}'`);
+  if ((oldComp.minStock ?? 10) !== comp.minStock) diffParts.push(`MinStock: ${oldComp.minStock ?? 10} → ${comp.minStock}`);
+  if ((oldComp.unitPrice ?? 0) !== comp.unitPrice) diffParts.push(`Price: $${(oldComp.unitPrice ?? 0).toFixed(2)} → $${comp.unitPrice.toFixed(2)}`);
+  if ((oldComp.datasheetUrl || '') !== comp.datasheetUrl) diffParts.push(`Datasheet: '${oldComp.datasheetUrl || 'N/A'}' → '${comp.datasheetUrl || 'N/A'}'`);
+  if ((oldComp.supplierPartNo || '') !== comp.supplierPartNo) diffParts.push(`SupplierPN: '${oldComp.supplierPartNo || 'N/A'}' → '${comp.supplierPartNo || 'N/A'}'`);
+  if ((oldComp.supplier || '') !== (comp.supplier || '')) diffParts.push(`Supplier: '${oldComp.supplier || 'N/A'}' → '${comp.supplier || 'N/A'}'`);
 
   const changeSummary = diffParts.length > 0 ? diffParts.join(' | ') : 'Updated component fields';
   logAuditRecord('EDIT', comp.mpn, changeSummary);
@@ -3205,7 +3546,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   } else {
     componentList = (dbRes.list || []).map((c) =>
-      createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode)
+      createComponent(c.mpn, c.quantity, c.type || c.componentType, c.value, c.footprint, c.location, c.customerCode, c.minStock, c.unitPrice, c.datasheetUrl, c.supplierPartNo, c.supplier)
     );
     if (splashStatusText) splashStatusText.textContent = 'Ready!';
     // Smooth visual transition
@@ -3233,6 +3574,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('statCardParts').addEventListener('click', () => {
     document.getElementById('stockFilterComboBox').selectedIndex = 0;
     document.getElementById('typeFilterComboBox').selectedIndex = 0;
+    if (document.getElementById('supplierFilterComboBox')) {
+      document.getElementById('supplierFilterComboBox').selectedIndex = 0;
+    }
     document.getElementById('quickFilterLineEdit').value = '';
     document.getElementById('quickFilterClearX').classList.add('hidden');
     renderInventoryTable();
@@ -3251,6 +3595,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderInventoryTable();
     showToast(`Filtered: ${stockCombo.value}`);
   });
+
+  const statCardVal = document.getElementById('statCardValuation');
+  if (statCardVal) {
+    statCardVal.addEventListener('click', () => {
+      showToast('Total valuation calculated from stock quantities × unit prices');
+    });
+  }
 
   document.getElementById('statCardSync').addEventListener('click', () => {
     onSavePushButtonClicked();
@@ -3419,15 +3770,43 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('typeFilterComboBox').addEventListener('change', () => renderInventoryTable());
   document.getElementById('stockFilterComboBox').addEventListener('change', () => renderInventoryTable());
+  const supplierFilterEl = document.getElementById('supplierFilterComboBox');
+  if (supplierFilterEl) {
+    supplierFilterEl.addEventListener('change', () => renderInventoryTable());
+  }
 
   document.getElementById('clearFilterPushButton').addEventListener('click', () => {
     quickFilterInput.value = '';
     quickFilterClearX.classList.add('hidden');
     document.getElementById('typeFilterComboBox').selectedIndex = 0;
     document.getElementById('stockFilterComboBox').selectedIndex = 0;
+    if (supplierFilterEl) supplierFilterEl.selectedIndex = 0;
     renderInventoryTable();
     showToast('Filters reset');
   });
+
+  // Auto-detect supplier from supplier part number input
+  const addSuppPnInput = document.getElementById('supplierPartNoLineEdit');
+  if (addSuppPnInput) {
+    addSuppPnInput.addEventListener('input', (e) => {
+      const combo = document.getElementById('supplierComboBox');
+      if (combo && !combo.value) {
+        const detected = detectSupplierFromPn(e.target.value);
+        if (detected) combo.value = detected;
+      }
+    });
+  }
+
+  const editSuppPnInput = document.getElementById('editSupplierPartNoLineEdit');
+  if (editSuppPnInput) {
+    editSuppPnInput.addEventListener('input', (e) => {
+      const combo = document.getElementById('editSupplierComboBox');
+      if (combo && !combo.value) {
+        const detected = detectSupplierFromPn(e.target.value);
+        if (detected) combo.value = detected;
+      }
+    });
+  }
 
   // 7. Toolbar Buttons
   document.getElementById('importPushButton').addEventListener('click', onImportPushButtonClicked);
@@ -3449,6 +3828,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('applyEditspushButton').addEventListener('click', onApplyEditspushButtonClicked);
   document.getElementById('deleteComponentpushButton').addEventListener('click', onDeleteComponentpushButtonClicked);
+
+  const openDsBtn = document.getElementById('openDatasheetBtn');
+  if (openDsBtn) {
+    openDsBtn.addEventListener('click', () => {
+      const url = document.getElementById('editDatasheetUrlLineEdit')?.value.trim();
+      if (url) {
+        window.electronAPI.openExternalUrl(url);
+      }
+    });
+  }
 
   document.getElementById('incStockPushButton').addEventListener('click', () => {
     const spin = document.getElementById('editQuantitySpinBox');

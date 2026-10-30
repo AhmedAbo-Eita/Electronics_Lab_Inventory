@@ -246,6 +246,14 @@
           <div class="stat-card-value" id="statLowStockValue">0</div>
         </div>
 
+        <div class="stat-card interactive-card" id="statCardValuation" title="Total inventory valuation based on quantity and unit prices">
+          <div class="stat-card-top">
+            <span class="stat-card-title">TOTAL VALUE</span>
+            <span class="stat-dot dot-purple"></span>
+          </div>
+          <div class="stat-card-value" id="statTotalValuationValue">$0.00</div>
+        </div>
+
         <div class="stat-card interactive-card" id="statCardSync" title="Click to save changes to database">
           <div class="stat-card-top">
             <span class="stat-card-title">SYNC STATUS</span>
@@ -334,6 +342,17 @@
               </select>
             </div>
 
+            <div class="select-chip-wrap">
+              <span class="chip-label">Supplier</span>
+              <select id="supplierFilterComboBox" aria-label="Filter by Supplier">
+                <option value="All Suppliers">All Suppliers</option>
+                <option value="DigiKey">DigiKey</option>
+                <option value="Mouser">Mouser</option>
+                <option value="LCSC">LCSC</option>
+                <option value="Other">Other / None</option>
+              </select>
+            </div>
+
             <button id="clearFilterPushButton" class="btn-tonal ripple-btn" type="button">Reset</button>
             <span id="visibleRowsBadgeLabel" class="visible-rows-badge">Showing 0 of 0</span>
           </div>
@@ -354,6 +373,10 @@
                     <th data-col="4" class="sortable">Footprint <span class="sort-indicator"></span></th>
                     <th data-col="5" class="sortable">Lab Location <span class="sort-indicator"></span></th>
                     <th data-col="6" class="sortable">Customer Code <span class="sort-indicator"></span></th>
+                    <th data-col="7" class="sortable cell-center">Min Stock <span class="sort-indicator"></span></th>
+                    <th data-col="8" class="sortable cell-right">Unit Price <span class="sort-indicator"></span></th>
+                    <th data-col="9" class="sortable">Supplier <span class="sort-indicator"></span></th>
+                    <th class="cell-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="inventoryTableBody"></tbody>
@@ -460,6 +483,36 @@
                     <input id="addCustomerCodeLineEdit" type="text" placeholder="e.g. MCU-001" autocomplete="off" />
                   </div>
 
+                  <div class="field-group">
+                    <label for="minStockSpinBox">Min Stock Alert</label>
+                    <input id="minStockSpinBox" type="number" min="0" max="99999" value="10" />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="unitPriceLineEdit">Unit Price ($)</label>
+                    <input id="unitPriceLineEdit" type="number" min="0" step="0.001" value="0.00" placeholder="0.00" />
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="datasheetUrlLineEdit">Datasheet URL / PDF</label>
+                    <input id="datasheetUrlLineEdit" type="text" placeholder="https://... or C:\datasheets\..." autocomplete="off" />
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="supplierPartNoLineEdit">Supplier / Distributor PN</label>
+                    <input id="supplierPartNoLineEdit" type="text" placeholder="e.g. LCSC C12345 or DigiKey PN" autocomplete="off" />
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="supplierComboBox">Supplier / Distributor</label>
+                    <select id="supplierComboBox">
+                      <option value="">None / Other</option>
+                      <option value="DigiKey">DigiKey</option>
+                      <option value="Mouser">Mouser</option>
+                      <option value="LCSC">LCSC</option>
+                    </select>
+                  </div>
+
                   <div class="form-footer-actions span-full">
                     <button id="clearPushButton" class="btn-tonal ripple-btn" type="button">Reset Form</button>
                     <button id="addPushButton" class="btn-filled-primary flex-1 text-center ripple-btn" type="button">
@@ -524,6 +577,41 @@
                     <input id="editCustomerCodeLineEdit" type="text" placeholder="Designator / Code" disabled autocomplete="off" />
                   </div>
 
+                  <div class="field-group">
+                    <label for="editMinStockSpinBox">Min Stock Alert</label>
+                    <input id="editMinStockSpinBox" type="number" min="0" max="99999" value="10" disabled />
+                  </div>
+
+                  <div class="field-group">
+                    <label for="editUnitPriceLineEdit">Unit Price ($)</label>
+                    <input id="editUnitPriceLineEdit" type="number" min="0" step="0.001" value="0.00" disabled />
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="editDatasheetUrlLineEdit">Datasheet URL / PDF</label>
+                    <div class="inline-btn-row">
+                      <input id="editDatasheetUrlLineEdit" class="flex-1" type="text" placeholder="https://... or C:\datasheets\..." disabled autocomplete="off" />
+                      <button id="openDatasheetBtn" class="btn-tonal ripple-btn" type="button" title="Open Datasheet in Browser/Viewer" disabled>
+                        <span>Open</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="editSupplierPartNoLineEdit">Supplier / Distributor PN</label>
+                    <input id="editSupplierPartNoLineEdit" type="text" placeholder="e.g. LCSC C12345 or DigiKey PN" disabled autocomplete="off" />
+                  </div>
+
+                  <div class="field-group span-full">
+                    <label for="editSupplierComboBox">Supplier / Distributor</label>
+                    <select id="editSupplierComboBox" disabled>
+                      <option value="">None / Other</option>
+                      <option value="DigiKey">DigiKey</option>
+                      <option value="Mouser">Mouser</option>
+                      <option value="LCSC">LCSC</option>
+                    </select>
+                  </div>
+
                   <div class="form-footer-actions span-full">
                     <button id="deleteComponentpushButton" class="btn-tonal-danger ripple-btn" type="button" disabled>Delete</button>
                     <button id="applyEditspushButton" class="btn-filled-primary flex-1 text-center ripple-btn" type="button" disabled>
@@ -568,6 +656,26 @@
                     <div class="inspector-tile">
                       <span class="tile-label">Customer Code</span>
                       <div id="foundedCustomerCodeLabel" class="founded-result-badge">-</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Min Stock Threshold</span>
+                      <div id="foundedMinStockLabel" class="founded-result-badge">-</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Unit Price ($)</span>
+                      <div id="foundedUnitPriceLabel" class="founded-result-badge">-</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Datasheet</span>
+                      <div id="foundedDatasheetLabel" class="founded-result-badge">-</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Supplier PN</span>
+                      <div id="foundedSupplierPartNoLabel" class="founded-result-badge">-</div>
+                    </div>
+                    <div class="inspector-tile">
+                      <span class="tile-label">Supplier / Distributor</span>
+                      <div id="foundedSupplierLabel" class="founded-result-badge">-</div>
                     </div>
                   </div>
 
