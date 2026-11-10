@@ -29,7 +29,8 @@
   --on-primary: #062E6F;
   --primary-container: #004A77;
   --on-primary-container: #C2E7FF;
-  --focus-ring: rgba(168, 199, 250, 0.28);
+  --focus-ring: rgba(168, 199, 250, 0.16);
+  --focus-glow: 0 0 0 1px rgba(168, 199, 250, 0.35), 0 4px 16px -2px rgba(168, 199, 250, 0.2), 0 0 12px 0 rgba(168, 199, 250, 0.12);
 
   /* Semantic Status Colors (Dark Mode) */
   --ok-bg: rgba(129, 201, 149, 0.14);
@@ -90,7 +91,8 @@ body.light-theme {
   --on-primary: #FFFFFF;
   --primary-container: #D3E3FD;
   --on-primary-container: #041E49;
-  --focus-ring: rgba(11, 87, 208, 0.18);
+  --focus-ring: rgba(11, 87, 208, 0.12);
+  --focus-glow: 0 0 0 1px rgba(11, 87, 208, 0.25), 0 4px 14px -2px rgba(11, 87, 208, 0.14), 0 0 10px 0 rgba(11, 87, 208, 0.08);
 
   /* Semantic Status Colors (Light Mode) */
   --ok-bg: #E6F4EA;
@@ -773,7 +775,7 @@ body.dark-theme .logo-wrap .logo-dark { display: block; }
 .google-search-pill:focus-within {
   background-color: var(--bg-container);
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--focus-glow);
 }
 
 .search-svg {
@@ -1042,17 +1044,25 @@ input[type="number"]:focus,
 select:focus {
   background-color: var(--bg-container);
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--focus-glow);
 }
 
 /* Chrome / Electron Autofill override matching current theme */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--bg-container-low) inset !important;
   -webkit-text-fill-color: var(--text-primary) !important;
   caret-color: var(--text-primary);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-container) inset, var(--focus-glow) !important;
+  box-shadow: 0 0 0 1000px var(--bg-container) inset, var(--focus-glow) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+  border-color: var(--primary) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -3468,7 +3478,9 @@ body.light-theme .auth-mode-indicator {
 
 .auth-forms-viewport {
   position: relative;
-  width: 100%;
+  width: calc(100% + 20px);
+  margin: -6px -10px;
+  padding: 6px 10px;
   overflow: hidden;
 }
 
@@ -3613,7 +3625,7 @@ body.light-theme .auth-feedback-box.success-banner {
 .auth-input-wrapper.has-error input {
   border-color: #EF4444 !important;
   background-color: rgba(239, 68, 68, 0.06) !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22) !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35), 0 4px 14px -2px rgba(239, 68, 68, 0.2) !important;
 }
 
 .auth-input-wrapper.has-error .auth-input-icon {
@@ -3622,8 +3634,8 @@ body.light-theme .auth-feedback-box.success-banner {
 
 body.dark-theme .auth-input-wrapper.has-error input {
   border-color: #F87171 !important;
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35), 0 4px 16px -2px rgba(239, 68, 68, 0.24) !important;
 }
 
 body.dark-theme .auth-input-wrapper.has-error .auth-input-icon {
@@ -3633,7 +3645,7 @@ body.dark-theme .auth-input-wrapper.has-error .auth-input-icon {
 body.light-theme .auth-input-wrapper.has-error input {
   border-color: #DC2626 !important;
   background-color: #FEF2F2 !important;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18) !important;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.25), 0 4px 14px -2px rgba(220, 38, 38, 0.14) !important;
 }
 
 body.light-theme .auth-input-wrapper.has-error .auth-input-icon {
@@ -3657,6 +3669,11 @@ body.light-theme .auth-input-wrapper.has-error .auth-input-icon {
   font-weight: 600;
   color: var(--text-secondary);
   padding-left: 2px;
+  transition: color 0.22s var(--ease-standard);
+}
+
+.auth-field-group:focus-within label {
+  color: var(--primary);
 }
 
 .auth-input-wrapper {
@@ -3667,36 +3684,52 @@ body.light-theme .auth-input-wrapper.has-error .auth-input-icon {
 
 .auth-input-icon {
   position: absolute;
-  left: 11px;
+  left: 12px;
   width: 16px;
   height: 16px;
   color: var(--text-muted);
   pointer-events: none;
   flex-shrink: 0;
+  z-index: 2;
+  transition: color 0.22s var(--ease-standard), transform 0.22s var(--ease-spring);
+}
+
+.auth-input-wrapper:focus-within .auth-input-icon {
+  color: var(--primary);
+  transform: scale(1.06);
 }
 
 .auth-input-wrapper input {
   width: 100%;
-  padding-left: 36px;
-  padding-right: 36px;
-  min-height: 40px;
+  padding-left: 38px;
+  padding-right: 38px;
+  min-height: 42px;
   font-size: 13.5px;
   border-radius: 12px;
   background-color: var(--bg-container-low);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
   outline: none;
-  transition: border-color 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
+  transition:
+    border-color 0.22s var(--ease-standard),
+    box-shadow 0.25s var(--ease-standard),
+    background-color 0.22s var(--ease-standard);
 }
 
-.auth-input-wrapper input:hover:not(:disabled) {
+body.light-theme .auth-input-wrapper input {
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.auth-input-wrapper input:hover:not(:disabled):not(:focus) {
   border-color: var(--border-strong);
+  background-color: var(--bg-container);
 }
 
 .auth-input-wrapper input:focus {
   background-color: var(--bg-container);
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--focus-glow);
 }
 
 .password-toggle-btn {
@@ -3766,60 +3799,196 @@ body.light-theme .auth-input-wrapper.has-error .auth-input-icon {
 }
 
 /* ============================================================================
- * Header User Profile Cluster, User Chip & History Button
+ * Header User Profile Unified Pill Dock (History, Profile & Sign Out)
  * ============================================================================ */
 
 .user-profile-cluster {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin-left: 8px;
+  padding: 4px 5px;
+  height: 40px;
+  background-color: var(--bg-container-low);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition:
+    background-color 0.25s var(--ease-standard),
+    border-color 0.25s var(--ease-standard),
+    box-shadow 0.25s var(--ease-standard);
 }
 
+.user-profile-cluster:hover {
+  border-color: var(--border-strong);
+}
+
+.dock-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--border-subtle);
+  margin: 0 2px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+.header-tool-btn,
+.dock-action-btn {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  gap: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-shadow: none;
+  transition:
+    background-color 0.22s var(--ease-standard),
+    color 0.22s var(--ease-standard),
+    border-color 0.22s var(--ease-standard),
+    box-shadow 0.22s var(--ease-standard),
+    transform 0.2s var(--ease-spring);
+}
+
+.header-btn-svg {
+  flex-shrink: 0;
+  transition: transform 0.25s var(--ease-spring), color 0.22s var(--ease-standard);
+}
+
+/* History Segment Button */
+.dock-history-btn:hover:not(:disabled) {
+  background-color: var(--bg-container-high);
+  color: var(--primary);
+  border-color: rgba(168, 199, 250, 0.22);
+  transform: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+
+body.light-theme .dock-history-btn:hover:not(:disabled) {
+  border-color: rgba(11, 87, 208, 0.2);
+  box-shadow: 0 1px 4px rgba(11, 87, 208, 0.08);
+}
+
+.dock-history-btn:hover:not(:disabled) .dock-icon-history {
+  transform: rotate(-16deg) scale(1.08);
+  color: var(--primary);
+}
+
+/* Interactive User Profile Pill inside Dock */
 .user-chip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background-color: var(--bg-container-low);
+  height: 30px;
+  background-color: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  padding: 4px 10px 4px 5px;
+  padding: 3px 11px 3px 4px;
   user-select: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  transition:
+    background-color 0.22s var(--ease-standard),
+    border-color 0.22s var(--ease-standard),
+    box-shadow 0.22s var(--ease-standard),
+    transform 0.2s var(--ease-spring);
+}
+
+.user-chip:hover {
+  background-color: var(--bg-container-high);
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 0 2px var(--focus-ring);
+}
+
+.user-chip:active {
+  transform: scale(0.97);
+}
+
+.user-chip:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .user-avatar-circle {
+  position: relative;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background-color: var(--primary-container);
+  background: linear-gradient(135deg, var(--primary-container) 0%, rgba(168, 199, 250, 0.28) 100%);
   color: var(--on-primary-container);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.22s var(--ease-spring);
+}
+
+body.light-theme .user-avatar-circle {
+  background: linear-gradient(135deg, var(--primary-container) 0%, #B3D1FF 100%);
+  box-shadow: inset 0 0 0 1px rgba(11, 87, 208, 0.14);
+}
+
+.user-chip:hover .user-avatar-circle {
+  transform: scale(1.06);
+}
+
+.user-status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--ok-solid);
+  border: 1.5px solid var(--bg-container);
+  box-shadow: 0 0 4px var(--ok-glow);
+  pointer-events: none;
 }
 
 .user-chip-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 0.1px;
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.header-tool-btn {
-  min-height: 30px;
-  padding: 4px 11px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px;
-  gap: 6px;
+/* Sign Out Segment Button */
+.dock-logout-btn {
+  color: var(--err-text);
+  background-color: rgba(242, 139, 130, 0.08);
+  border-color: rgba(242, 139, 130, 0.18);
 }
 
-.header-btn-svg {
-  flex-shrink: 0;
+body.light-theme .dock-logout-btn {
+  background-color: rgba(197, 34, 31, 0.06);
+  border-color: rgba(197, 34, 31, 0.18);
+}
+
+.dock-logout-btn:hover:not(:disabled) {
+  background-color: var(--err-solid);
+  color: var(--on-solid);
+  border-color: var(--err-solid);
+  transform: none;
+  box-shadow: 0 4px 12px -2px var(--err-glow);
+}
+
+.dock-logout-btn:hover:not(:disabled) .dock-icon-logout {
+  transform: translateX(2px);
 }
 
 /* ============================================================================
@@ -4487,7 +4656,7 @@ body.light-theme .simple-tab-btn.active {
 .simple-settings-modal input[type="number"]:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--focus-glow);
 }
 
 .simple-pass-input-wrapper {

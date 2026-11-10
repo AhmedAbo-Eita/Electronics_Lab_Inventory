@@ -263,29 +263,35 @@
         </div>
       </div>
 
-      <!-- Active User Profile, History & Sign Out Cluster -->
-      <div class="user-profile-cluster hidden" id="userProfileCluster">
-        <button id="openAuditHistoryBtn" class="btn-tonal ripple-btn header-tool-btn" type="button" title="View Inventory Change Audit Log">
-          <svg class="header-btn-svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
+      <!-- Active User Profile, History & Sign Out Unified Pill Dock -->
+      <div class="user-profile-cluster hidden" id="userProfileCluster" role="toolbar" aria-label="User Profile and Session Controls">
+        <button id="openAuditHistoryBtn" class="dock-action-btn dock-history-btn ripple-btn header-tool-btn" type="button" title="View Inventory Change Audit Log">
+          <svg class="header-btn-svg dock-icon-history" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15.5 14"></polyline>
           </svg>
           <span>History</span>
         </button>
 
+        <span class="dock-divider" aria-hidden="true"></span>
+
         <span id="readOnlyModeBanner" class="read-only-pill hidden" title="Your account has explore-only access. Actions that modify the database are disabled.">&#128065; View-Only</span>
-        <div class="user-chip" id="authUserChip" title="Authenticated User Profile">
+
+        <div class="user-chip ripple-btn" id="authUserChip" role="button" tabindex="0" title="Account Profile &amp; Settings">
           <div class="user-avatar-circle">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
+            <span class="user-status-dot" aria-hidden="true"></span>
           </div>
           <span class="user-chip-name" id="authUserNameLabel">User</span>
         </div>
 
-        <button id="authLogoutBtn" class="btn-tonal-danger ripple-btn header-tool-btn" type="button" title="Sign Out of Session">
-          <svg class="header-btn-svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+        <span class="dock-divider" aria-hidden="true"></span>
+
+        <button id="authLogoutBtn" class="dock-action-btn dock-logout-btn ripple-btn header-tool-btn" type="button" title="Sign Out of Session">
+          <svg class="header-btn-svg dock-icon-logout" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>

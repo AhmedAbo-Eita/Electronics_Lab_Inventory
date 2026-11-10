@@ -685,9 +685,16 @@
     }
     if (dom.authUserChip) {
       dom.authUserChip.style.cursor = 'pointer';
-      dom.authUserChip.addEventListener('click', () => {
+      const openAccountSettings = () => {
         if (typeof window.openSettingsModal === 'function') {
           window.openSettingsModal('account');
+        }
+      };
+      dom.authUserChip.addEventListener('click', openAccountSettings);
+      dom.authUserChip.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openAccountSettings();
         }
       });
     }
