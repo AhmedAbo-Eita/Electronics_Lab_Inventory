@@ -49,7 +49,7 @@ function createWindow() {
     minHeight: 680,
     title: 'Lab Inventory',
     icon: iconPath,
-    backgroundColor: '#131314',
+    backgroundColor: '#000000',
     frame: false, // Frameless window - custom titlebar in frontend
     autoHideMenuBar: true,
     show: false,

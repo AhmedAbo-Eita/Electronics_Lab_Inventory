@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="dark-theme">
+  <!-- Interactive Ambient Space Starfield (GPT-6 Astra Aesthetic) -->
+  <canvas id="astraStarfieldCanvas" class="astra-starfield-canvas" aria-hidden="true"></canvas>
+  <div class="astra-ambient-vignette" aria-hidden="true"></div>
+
   <!-- Initial Splash / Loading Screen -->
   <div id="appSplashScreen" class="app-splash-screen">
     <div class="splash-card">
@@ -32,6 +36,14 @@
     </div>
 
     <div class="titlebar-actions">
+      <!-- Replay Ambient Starfield Convergence -->
+      <button id="astraReplayFieldBtn" class="titlebar-settings-icon-btn astra-replay-btn" type="button" title="Replay Starfield Convergence" aria-label="Replay Starfield Convergence">
+        <svg class="astra-replay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+          <polyline points="21 3 21 9 15 9"></polyline>
+        </svg>
+      </button>
+
       <!-- Modern Compact Animated Settings Button (Theme & Database Configuration) -->
       <button id="openSettingsBtn" class="titlebar-settings-icon-btn ripple-btn" type="button" title="Settings (Appearance, Theme &amp; Database)">
         <svg class="settings-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -201,6 +213,7 @@
         </div>
         <!-- Main Navigation Segmented Pill Bar -->
         <nav class="main-nav-pills" role="tablist" aria-label="Main Views">
+          <span id="mainNavIndicator" class="astra-pill-indicator" aria-hidden="true"></span>
           <button class="nav-pill active ripple-btn" data-main-tab="inventoryTableTab" type="button">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
@@ -430,6 +443,7 @@
             <!-- Sub-Tabs Card (Add / Edit / Search) -->
             <div class="surface-card inspector-card">
               <div class="segmented-sub-tabs" role="tablist">
+                <span id="subTabIndicator" class="astra-pill-indicator" aria-hidden="true"></span>
                 <button class="sub-tab-btn active ripple-btn" data-sub-tab="addComponentTab" type="button">Add New</button>
                 <button class="sub-tab-btn ripple-btn" data-sub-tab="EditComponentTab" type="button">Edit Part</button>
                 <button class="sub-tab-btn ripple-btn" data-sub-tab="searchComponentTab" type="button">Inspector</button>
@@ -1138,7 +1152,7 @@
                 </div>
                 <div class="simple-info-row">
                   <span class="simple-info-label">Version:</span>
-                  <strong id="aboutAppVersionBadge">v2.1.3</strong>
+                  <strong id="aboutAppVersionBadge">v2.2.0</strong>
                 </div>
                 <div class="simple-info-row">
                   <span class="simple-info-label">Developer:</span>
@@ -1159,7 +1173,7 @@
               <div class="simple-update-status-box">
                 <div>
                   <strong id="updateStatusHeadline">Updates are up to date</strong>
-                  <p id="updateStatusSubtext" class="simple-option-subtext">Current version: v2.1.3.</p>
+                  <p id="updateStatusSubtext" class="simple-option-subtext">Current version: v2.2.0.</p>
                   <span id="updateLastCheckedLabel" class="simple-info-muted">Last checked: Never</span>
                 </div>
                 <div class="simple-update-actions">
@@ -1174,7 +1188,7 @@
               <div id="updateFoundDetails" class="simple-update-found-box hidden">
                 <div class="simple-info-row">
                   <strong>New Release:</strong>
-                  <span id="updateFoundVersionTag" style="color: var(--primary); font-weight: bold;">v2.1.3</span>
+                  <span id="updateFoundVersionTag" style="color: var(--primary); font-weight: bold;">v2.2.0</span>
                   <span id="updateFoundDate" class="simple-info-muted"></span>
                   <span id="updateFoundSize" class="simple-info-muted"></span>
                 </div>

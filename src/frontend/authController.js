@@ -300,7 +300,17 @@
         dom.userProfileCluster.classList.remove('hidden');
       }
       if (dom.overlay) {
-        dom.overlay.classList.add('hidden');
+        dom.overlay.classList.remove('hidden');
+        dom.overlay.classList.add('auth-hidden');
+      }
+      const appRoot = document.querySelector('.app-root');
+      if (appRoot) {
+        appRoot.classList.remove('astra-enter');
+        void appRoot.offsetWidth;
+        appRoot.classList.add('astra-enter');
+      }
+      if (typeof window.triggerAstraConvergence === 'function') {
+        window.triggerAstraConvergence();
       }
     } else {
       // Logged out
@@ -314,7 +324,7 @@
         dom.authUserChip.title = 'Not authenticated';
       }
       if (dom.overlay) {
-        dom.overlay.classList.remove('hidden');
+        dom.overlay.classList.remove('hidden', 'auth-hidden');
       }
       switchAuthTab('login');
     }

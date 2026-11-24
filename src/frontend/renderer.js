@@ -41,8 +41,318 @@ let bomSortCol = null;
 let bomSortAsc = true;
 
 // ============================================================================
-// Interactive Micro-Animations (Material Ripple, Number Tween, Snackbar Toast)
+// Astra Motion Helpers, Ambient Starfield, Pill Indicators & Spotlight
 // ============================================================================
+
+const prefersReducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+let isUserScrolling = false;
+let scrollIdleTimer = null;
+
+function initAstraStarfield() {
+  const canvas = document.getElementById('astraStarfieldCanvas');
+  if (!canvas) {
+    window.triggerAstraConvergence = () => {};
+    return;
+  }
+
+  const ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
+  if (!ctx) {
+    window.triggerAstraConvergence = () => {};
+    return;
+  }
+
+  const STAR_COUNT = 130;
+  const stars = [];
+  let width = 0;
+  let height = 0;
+  let rafId = null;
+  let lastDrawTime = 0;
+  let pointerTargetX = 0;
+  let pointerTargetY = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  let convergenceStart = -1;
+  const CONVERGENCE_MS = 950;
+  let sprites = null;
+
+  const hasOpenModal = () => Boolean(document.querySelector('.modal-overlay:not(.hidden)'));
+
+  const createSprite = (innerColor, midColor, outerColor) => {
+    const size = 16;
+    const off = document.createElement('canvas');
+    off.width = size;
+    off.height = size;
+    const octx = off.getContext('2d');
+    const half = size / 2;
+    const grad = octx.createRadialGradient(half, half, 0.5, half, half, half);
+    grad.addColorStop(0, innerColor);
+    grad.addColorStop(0.42, midColor);
+    grad.addColorStop(1, outerColor);
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, size, size);
+    return off;
+  };
+
+  const buildSprites = () => {
+    const lightMode = document.body.classList.contains('light-theme');
+    if (lightMode) {
+      sprites = {
+        white: createSprite('rgba(13, 13, 13, 0.16)', 'rgba(13, 13, 13, 0.05)', 'rgba(13, 13, 13, 0)'),
+        blue: createSprite('rgba(44, 103, 197, 0.24)', 'rgba(44, 103, 197, 0.06)', 'rgba(44, 103, 197, 0)'),
+        amber: createSprite('rgba(184, 128, 43, 0.2)', 'rgba(184, 128, 43, 0.05)', 'rgba(184, 128, 43, 0)')
+      };
+    } else {
+      sprites = {
+        white: createSprite('rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.32)', 'rgba(255, 255, 255, 0)'),
+        blue: createSprite('rgba(164, 205, 251, 0.95)', 'rgba(83, 154, 248, 0.34)', 'rgba(83, 154, 248, 0)'),
+        amber: createSprite('rgba(250, 229, 152, 0.95)', 'rgba(246, 197, 67, 0.34)', 'rgba(246, 197, 67, 0)')
+      };
+    }
+  };
+
+  const pickColorType = () => {
+    const r = Math.random();
+    if (r < 0.72) return 'white';
+    if (r < 0.88) return 'blue';
+    return 'amber';
+  };
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const depth = 0.22 + Math.random() * 0.78;
+    stars.push({
+      nx: Math.random(),
+      ny: Math.random(),
+      z: depth,
+      radius: (0.65 + Math.random() * 1.35) * (0.65 + depth * 0.45),
+      colorType: pickColorType(),
+      baseAlpha: 0.28 + Math.random() * 0.68,
+      twinkleSpeed: 0.0012 + Math.random() * 0.0022,
+      twinklePhase: Math.random() * Math.PI * 2,
+      vx: (Math.random() - 0.5) * 0.00002 * depth,
+      vy: (-0.000014 - Math.random() * 0.000024) * depth,
+      angleOffset: (Math.random() - 0.5) * 0.85
+    });
+  }
+
+  const drawFrame = (now) => {
+    if (width <= 0 || height <= 0) return;
+    if (!sprites) buildSprites();
+
+    const lightMode = document.body.classList.contains('light-theme');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = lightMode ? '#F7F7F5' : '#000000';
+    ctx.fillRect(0, 0, width, height);
+
+    pointerX += (pointerTargetX - pointerX) * 0.06;
+    pointerY += (pointerTargetY - pointerY) * 0.06;
+
+    let warpEnvelope = 0;
+    if (convergenceStart > 0) {
+      const elapsed = now - convergenceStart;
+      if (elapsed < CONVERGENCE_MS) {
+        warpEnvelope = Math.sin((elapsed / CONVERGENCE_MS) * Math.PI);
+      } else {
+        convergenceStart = -1;
+      }
+    }
+
+    const cx = width * 0.5;
+    const cy = height * 0.45;
+    const isReduced = Boolean(prefersReducedMotionQuery && prefersReducedMotionQuery.matches);
+
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      if (!isReduced) {
+        s.nx += s.vx;
+        s.ny += s.vy;
+        if (s.nx < -0.02) s.nx = 1.02;
+        if (s.nx > 1.02) s.nx = -0.02;
+        if (s.ny < -0.02) s.ny = 1.02;
+        if (s.ny > 1.02) s.ny = -0.02;
+      }
+
+      let sx = s.nx * width + pointerX * s.z * 18;
+      let sy = s.ny * height + pointerY * s.z * 14;
+
+      if (warpEnvelope > 0 && !isReduced) {
+        const dx = sx - cx;
+        const dy = sy - cy;
+        const angle = warpEnvelope * (0.45 + s.z * 0.6) * (s.angleOffset >= 0 ? 1 : -1);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const pull = 1 - warpEnvelope * 0.28 * s.z;
+        sx = cx + (dx * cos - dy * sin) * pull;
+        sy = cy + (dx * sin + dy * cos) * pull;
+      }
+
+      const twinkle = isReduced
+        ? 1
+        : 0.65 + 0.35 * Math.sin(now * s.twinkleSpeed + s.twinklePhase);
+      const alpha = Math.min(1, s.baseAlpha * twinkle + warpEnvelope * 0.22);
+      const drawSize = (s.radius + warpEnvelope * 0.5 * s.z) * 5.2;
+      const half = drawSize * 0.5;
+
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(sprites[s.colorType], sx - half, sy - half, drawSize, drawSize);
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  const resizeCanvas = () => {
+    width = Math.max(1, window.innerWidth);
+    height = Math.max(1, window.innerHeight);
+    canvas.width = width;
+    canvas.height = height;
+    drawFrame(performance.now());
+  };
+
+  const loop = (now) => {
+    if (document.hidden || isUserScrolling || hasOpenModal() || (prefersReducedMotionQuery && prefersReducedMotionQuery.matches)) {
+      rafId = null;
+      return;
+    }
+
+    const isSettling =
+      convergenceStart > 0 ||
+      Math.abs(pointerTargetX - pointerX) > 0.01 ||
+      Math.abs(pointerTargetY - pointerY) > 0.01;
+    const minInterval = isSettling ? 16 : 32;
+
+    if (now - lastDrawTime >= minInterval) {
+      lastDrawTime = now;
+      drawFrame(now);
+    }
+    rafId = requestAnimationFrame(loop);
+  };
+
+  const startLoop = () => {
+    if (prefersReducedMotionQuery && prefersReducedMotionQuery.matches) {
+      drawFrame(performance.now());
+      return;
+    }
+    if (!rafId && !document.hidden && !isUserScrolling && !hasOpenModal()) {
+      rafId = requestAnimationFrame(loop);
+    }
+  };
+
+  // Pause background starfield immediately while scrolling any container
+  document.addEventListener('scroll', () => {
+    isUserScrolling = true;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = setTimeout(() => {
+      isUserScrolling = false;
+      startLoop();
+    }, 160);
+  }, { capture: true, passive: true });
+
+  // Resume starfield cleanly once a modal overlay closes
+  const checkModalResume = () => {
+    setTimeout(() => {
+      if (!hasOpenModal()) startLoop();
+    }, 40);
+  };
+  document.addEventListener('click', checkModalResume, { passive: true });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Enter') checkModalResume();
+  }, { passive: true });
+
+  window.addEventListener('resize', resizeCanvas, { passive: true });
+
+  window.addEventListener('pointermove', (e) => {
+    if (isUserScrolling || width <= 0 || height <= 0) return;
+    pointerTargetX = (e.clientX / width - 0.5) * 2;
+    pointerTargetY = (e.clientY / height - 0.5) * 2;
+  }, { passive: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    } else {
+      startLoop();
+    }
+  });
+
+  if (prefersReducedMotionQuery && prefersReducedMotionQuery.addEventListener) {
+    prefersReducedMotionQuery.addEventListener('change', () => {
+      if (prefersReducedMotionQuery.matches) {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        drawFrame(performance.now());
+      } else {
+        startLoop();
+      }
+    });
+  }
+
+  window.triggerAstraConvergence = () => {
+    convergenceStart = performance.now();
+    startLoop();
+  };
+
+  window.refreshAstraStarfieldTheme = () => {
+    buildSprites();
+    drawFrame(performance.now());
+  };
+
+  buildSprites();
+  resizeCanvas();
+  convergenceStart = performance.now();
+  startLoop();
+}
+
+function syncPillIndicator(containerSelector, indicatorId, activeSelector) {
+  const container = document.querySelector(containerSelector);
+  const indicator = document.getElementById(indicatorId);
+  if (!container || !indicator) return;
+  const activeBtn = container.querySelector(activeSelector);
+  if (!activeBtn || activeBtn.offsetWidth === 0) {
+    indicator.style.opacity = '0';
+    return;
+  }
+  indicator.style.opacity = '1';
+  indicator.style.width = `${activeBtn.offsetWidth}px`;
+  indicator.style.transform = `translate3d(${activeBtn.offsetLeft}px, 0, 0)`;
+}
+
+function syncMainNavIndicator() {
+  syncPillIndicator('.main-nav-pills', 'mainNavIndicator', '.nav-pill.active');
+}
+
+function syncSubTabIndicator() {
+  syncPillIndicator('.segmented-sub-tabs', 'subTabIndicator', '.sub-tab-btn.active');
+}
+
+function attachAstraCardSpotlight() {
+  const selector = '.stat-card, .bom-metric-pill, .inspector-tile, .toolbar-action-btn';
+  let spotlightRaf = 0;
+  let lastEvent = null;
+
+  document.addEventListener('pointermove', (e) => {
+    if (isUserScrolling) return;
+    lastEvent = e;
+    if (spotlightRaf) return;
+    spotlightRaf = requestAnimationFrame(() => {
+      spotlightRaf = 0;
+      if (!lastEvent || isUserScrolling) return;
+      const target = lastEvent.target && typeof lastEvent.target.closest === 'function'
+        ? lastEvent.target.closest(selector)
+        : null;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      target.style.setProperty('--mouse-x', `${lastEvent.clientX - rect.left}px`);
+      target.style.setProperty('--mouse-y', `${lastEvent.clientY - rect.top}px`);
+    });
+  }, { passive: true });
+}
 
 function attachMaterialRipples() {
   document.addEventListener('pointerdown', (e) => {
@@ -63,18 +373,19 @@ function attachMaterialRipples() {
       if (wave.parentNode) wave.remove();
     };
     wave.addEventListener('animationend', removeWave, { once: true });
-    setTimeout(removeWave, 600);
+    setTimeout(removeWave, 550);
   });
 }
 
 const counterAnimationMap = new WeakMap();
+const currencyAnimationMap = new WeakMap();
 
 function animateCounter(el, targetValue) {
   if (!el) return;
   const startValue = parseInt(el.dataset.numericVal ?? el.textContent, 10) || 0;
   el.dataset.numericVal = String(targetValue);
 
-  if (startValue === targetValue) {
+  if (startValue === targetValue || (prefersReducedMotionQuery && prefersReducedMotionQuery.matches)) {
     el.textContent = String(targetValue);
     return;
   }
@@ -83,13 +394,13 @@ function animateCounter(el, targetValue) {
     cancelAnimationFrame(counterAnimationMap.get(el));
   }
 
-  const duration = 360;
+  const duration = 420;
   const startTime = performance.now();
 
   const step = (now) => {
     const progress = Math.min(1, (now - startTime) / duration);
-    // Ease-out cubic
-    const eased = 1 - Math.pow(1 - progress, 3);
+    // Quartic ease-out matching Astra settle curve
+    const eased = 1 - Math.pow(1 - progress, 4);
     const current = Math.round(startValue + (targetValue - startValue) * eased);
     el.textContent = String(current);
     if (progress < 1) {
@@ -100,6 +411,40 @@ function animateCounter(el, targetValue) {
   };
 
   counterAnimationMap.set(el, requestAnimationFrame(step));
+}
+
+function animateCurrency(el, targetValue) {
+  if (!el) return;
+  const parsedCurrent = parseFloat(String(el.dataset.currencyVal ?? el.textContent).replace(/[^0-9.-]/g, '')) || 0;
+  el.dataset.currencyVal = String(targetValue);
+
+  const formatMoney = (val) => `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  if (Math.abs(parsedCurrent - targetValue) < 0.005 || (prefersReducedMotionQuery && prefersReducedMotionQuery.matches)) {
+    el.textContent = formatMoney(targetValue);
+    return;
+  }
+
+  if (currencyAnimationMap.has(el)) {
+    cancelAnimationFrame(currencyAnimationMap.get(el));
+  }
+
+  const duration = 420;
+  const startTime = performance.now();
+
+  const step = (now) => {
+    const progress = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - progress, 4);
+    const current = parsedCurrent + (targetValue - parsedCurrent) * eased;
+    el.textContent = formatMoney(current);
+    if (progress < 1) {
+      currencyAnimationMap.set(el, requestAnimationFrame(step));
+    } else {
+      el.textContent = formatMoney(targetValue);
+    }
+  };
+
+  currencyAnimationMap.set(el, requestAnimationFrame(step));
 }
 
 function showToast(message) {
@@ -581,6 +926,7 @@ function renderInventoryTable(overrideSearchQuery = null) {
   }
 
   let visibleCount = 0;
+  const frag = document.createDocumentFragment();
 
   for (let rowIndex = 0; rowIndex < displayList.length; rowIndex++) {
     const comp = displayList[rowIndex];
@@ -590,7 +936,10 @@ function renderInventoryTable(overrideSearchQuery = null) {
 
     const tr = document.createElement('tr');
     tr.dataset.mpn = comp.mpn;
-    tr.style.animationDelay = `${Math.min(visibleCount * 12, 180)}ms`;
+    if (visibleCount <= 18) {
+      tr.classList.add('row-enter');
+      tr.style.animationDelay = `${Math.min(visibleCount * 10, 160)}ms`;
+    }
 
     if (selectedMPN && normalizeString(selectedMPN) === normalizeString(comp.mpn)) {
       tr.classList.add('selected-row');
@@ -753,9 +1102,10 @@ function renderInventoryTable(overrideSearchQuery = null) {
       highlightSelectedInventoryRow();
     });
 
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
 
+  tbody.appendChild(frag);
   document.getElementById('visibleRowsBadgeLabel').textContent = `Showing ${visibleCount} of ${componentList.length}`;
   updateDashboardMetrics();
 }
@@ -877,7 +1227,7 @@ function updateDashboardMetrics() {
 
   const valEl = document.getElementById('statTotalValuationValue');
   if (valEl) {
-    valEl.textContent = `$${totalValuation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    animateCurrency(valEl, totalValuation);
   }
 
   const isDirty = !areComponentListsEqual(componentListOldSave, componentList);
@@ -1241,11 +1591,15 @@ function refreshBomAnalysis() {
 
   const tbody = document.getElementById('bomTableBody');
   tbody.innerHTML = '';
+  const frag = document.createDocumentFragment();
 
   for (let i = 0; i < displayBom.length; i++) {
     const a = displayBom[i];
     const tr = document.createElement('tr');
-    tr.style.animationDelay = `${Math.min(i * 15, 180)}ms`;
+    if (i < 18) {
+      tr.classList.add('row-enter');
+      tr.style.animationDelay = `${Math.min(i * 12, 160)}ms`;
+    }
 
     let statusColorClass = 'stock-err';
     if (a.statusText === 'READY') statusColorClass = 'stock-ok';
@@ -1284,9 +1638,10 @@ function refreshBomAnalysis() {
       }
       tr.appendChild(td);
     }
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
 
+  tbody.appendChild(frag);
   animateCounter(document.getElementById('bomSummaryTotalLabel'), bomAnalysis.length);
   animateCounter(document.getElementById('bomSummaryReadyLabel'), readyLines);
   animateCounter(document.getElementById('bomSummaryShortageLabel'), shortageLines);
@@ -1317,6 +1672,7 @@ function switchSubTab(targetSubTabId) {
   document.querySelectorAll('.sub-tab-pane').forEach((pane) => {
     pane.classList.toggle('active', pane.id === targetSubTabId);
   });
+  syncSubTabIndicator();
 }
 
 async function onAddPushButtonClicked() {
@@ -2433,6 +2789,10 @@ function applyTheme(preference, notify = false) {
 
   updateSystemThemeBadge();
 
+  if (typeof window.refreshAstraStarfieldTheme === 'function') {
+    window.refreshAstraStarfieldTheme();
+  }
+
   if (notify) {
     if (preference === 'system') {
       showToast(`Theme: System Default (${sysTheme === 'dark' ? 'Windows Dark' : 'Windows Light'})`);
@@ -2774,9 +3134,9 @@ async function refreshAccountTab() {
 async function refreshPreferencesTab() {
   // Sync Theme
   updateSystemThemeBadge();
-  let currentPref = 'system';
+  let currentPref = 'dark';
   try {
-    currentPref = localStorage.getItem('app_theme_preference') || 'system';
+    currentPref = localStorage.getItem('app_theme_preference') || 'dark';
   } catch {}
   const radioSystem = document.getElementById('themeRadioSystem');
   const radioDark = document.getElementById('themeRadioDark');
@@ -3520,7 +3880,37 @@ function updateSortHeaders(selector, activeCol, isAsc) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  initAstraStarfield();
+  attachAstraCardSpotlight();
   attachMaterialRipples();
+
+  const replayFieldBtn = document.getElementById('astraReplayFieldBtn');
+  if (replayFieldBtn) {
+    replayFieldBtn.addEventListener('click', () => {
+      replayFieldBtn.classList.remove('spinning');
+      void replayFieldBtn.offsetWidth;
+      replayFieldBtn.classList.add('spinning');
+      if (typeof window.triggerAstraConvergence === 'function') {
+        window.triggerAstraConvergence();
+      }
+      setTimeout(() => replayFieldBtn.classList.remove('spinning'), 660);
+    });
+  }
+
+  // Sync sliding pill indicators immediately and on layout resize
+  const syncAllPillIndicators = () => {
+    syncMainNavIndicator();
+    syncSubTabIndicator();
+  };
+  requestAnimationFrame(syncAllPillIndicators);
+  window.addEventListener('resize', syncAllPillIndicators, { passive: true });
+  if (typeof ResizeObserver === 'function') {
+    const pillObserver = new ResizeObserver(syncAllPillIndicators);
+    const mainNavEl = document.querySelector('.main-nav-pills');
+    const subTabsEl = document.querySelector('.segmented-sub-tabs');
+    if (mainNavEl) pillObserver.observe(mainNavEl);
+    if (subTabsEl) pillObserver.observe(subTabsEl);
+  }
 
   const splashScreen = document.getElementById('appSplashScreen');
   const splashStatusText = document.getElementById('splashStatusText');
@@ -3567,6 +3957,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       document.querySelectorAll('.main-tab-container > .tab-pane').forEach((p) =>
         p.classList.toggle('active', p.id === target)
       );
+      requestAnimationFrame(syncAllPillIndicators);
     });
   });
 
@@ -3614,10 +4005,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 5. Theme & Appearance Management (System Auto-detect Windows mode or Manual)
-  let savedTheme = 'system';
+  // 5. Theme & Appearance Management (Default to GPT-6 Astra Dark Space theme)
+  let savedTheme = 'dark';
   try {
-    savedTheme = localStorage.getItem('app_theme_preference') || 'system';
+    savedTheme = localStorage.getItem('app_theme_preference') || 'dark';
   } catch {}
   applyTheme(savedTheme, false);
 
@@ -3626,9 +4017,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     const osSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleOSChange = () => {
       updateSystemThemeBadge();
-      let cur = 'system';
+      let cur = 'dark';
       try {
-        cur = localStorage.getItem('app_theme_preference') || 'system';
+        cur = localStorage.getItem('app_theme_preference') || 'dark';
       } catch {}
       if (cur === 'system') {
         applyTheme('system', true);
