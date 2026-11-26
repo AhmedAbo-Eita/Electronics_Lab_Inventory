@@ -42,7 +42,7 @@
   --accent-blue: #539AF8;
   --accent-purple: #A67DF2;
   --focus-ring: rgba(255, 255, 255, 0.22);
-  --focus-glow: 0 0 0 1px rgba(255, 255, 255, 0.42), 0 8px 28px -4px rgba(83, 154, 248, 0.18), 0 0 18px 0 rgba(255, 255, 255, 0.08);
+  --focus-glow: 0 0 0 1px rgba(255, 255, 255, 0.42), 0 0 0 3px rgba(255, 255, 255, 0.08), 0 0 16px 0 rgba(83, 154, 248, 0.14);
   --spotlight-color: rgba(255, 255, 255, 0.09);
 
   /* Astra Chart Series Semantic Colors (Dark Mode) */
@@ -3726,9 +3726,9 @@ body.light-theme .auth-mode-indicator {
 
 .auth-forms-viewport {
   position: relative;
-  width: calc(100% + 20px);
-  margin: -6px -10px;
-  padding: 6px 10px;
+  width: calc(100% + 56px);
+  margin: -20px -28px;
+  padding: 20px 28px;
   overflow: hidden;
 }
 
